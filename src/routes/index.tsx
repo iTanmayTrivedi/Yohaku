@@ -308,6 +308,161 @@ function Marquee({ items, dir = 1, accent }: { items: string[]; dir?: 1 | -1; ac
   );
 }
 
+// ---------- Mac-style dock with magnification + active indicator ----------
+const NAV = [
+  { l: "Home", h: "#top", id: "top", icon: "M3 12l9-9 9 9v9a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2z" },
+  { l: "About", h: "#about", id: "about", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0" },
+  { l: "Works", h: "#works", id: "works", icon: "M3 7h18M3 12h18M3 17h12" },
+  { l: "Services", h: "#services", id: "services", icon: "M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" },
+  { l: "Contact", h: "#contact", id: "contact", icon: "M3 5h18v14H3zM3 5l9 8 9-8" },
+];
+
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState(ids[0]);
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (vis) setActive(vis.target.id);
+      },
+      { rootMargin: "-40% 0px -50% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+    ids.forEach((id) => { const el = document.getElementById(id); if (el) obs.observe(el); });
+    return () => obs.disconnect();
+  }, [ids]);
+  return active;
+}
+
+function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mouseX: MotionValue<number>; active: boolean; onHover: (l: string | null) => void }) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  const distance = useTransform(mouseX, (val) => {
+    const r = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
+    return val - r.x - r.width / 2;
+  });
+  const sizeT = useTransform(distance, [-140, 0, 140], [40, 72, 40]);
+  const size = useSpring(sizeT, { stiffness: 220, damping: 18, mass: 0.4 });
+  const liftT = useTransform(distance, [-140, 0, 140], [0, -14, 0]);
+  const lift = useSpring(liftT, { stiffness: 220, damping: 18 });
+
+  return (
+    <motion.a
+      ref={ref}
+      href={item.h}
+      data-cursor={item.l.toLowerCase()}
+      onMouseEnter={() => onHover(item.l)}
+      onMouseLeave={() => onHover(null)}
+      style={{ width: size, height: size, y: lift }}
+      className="relative flex items-center justify-center rounded-full text-paper"
+    >
+      {active && (
+        <motion.span
+          layoutId="dock-active"
+          transition={{ type: "spring", stiffness: 350, damping: 30 }}
+          className="absolute inset-0 rounded-full bg-yellow-accent"
+        />
+      )}
+      <motion.svg viewBox="0 0 24 24" className="relative w-1/2 h-1/2" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
+        style={{ color: active ? "var(--ink)" : "var(--paper)" }}>
+        <path d={item.icon} />
+      </motion.svg>
+    </motion.a>
+  );
+}
+
+function Dock({ time }: { time: string }) {
+  const active = useActiveSection(NAV.map((n) => n.id));
+  const mouseX = useMotionValue(Infinity);
+  const [label, setLabel] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  // reveal on scroll past hero
+  useEffect(() => {
+    const onScroll = () => setOpen(window.scrollY > 200);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ y: 120, opacity: 0 }}
+      animate={{ y: open ? 0 : 90, opacity: open ? 1 : 0 }}
+      transition={{ type: "spring", stiffness: 260, damping: 26 }}
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2"
+    >
+      {/* hovered label bubble */}
+      <AnimatePresence>
+        {label && (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: 8, scale: 0.85 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.85 }}
+            transition={{ duration: 0.18 }}
+            className="px-3 py-1 rounded-full bg-ink text-paper text-xs uppercase tracking-[0.18em] shadow-lg"
+          >
+            {label}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Magnetic strength={0.15}>
+        <motion.nav
+          onMouseMove={(e) => mouseX.set(e.clientX)}
+          onMouseLeave={() => mouseX.set(Infinity)}
+          className="relative flex items-end gap-2 bg-ink/95 backdrop-blur-xl border border-white/10 px-3 py-2 rounded-full shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]"
+        >
+          {/* shimmer line */}
+          <motion.span
+            aria-hidden
+            className="absolute top-0 left-0 h-px w-1/3 bg-gradient-to-r from-transparent via-yellow-accent to-transparent"
+            animate={{ x: ["-50%", "350%"] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          />
+          <div className="flex items-center gap-1 pr-3 mr-1 border-r border-white/10 h-10">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-paper text-[10px] uppercase tracking-[0.2em] font-medium">{time || "live"}</span>
+          </div>
+          {NAV.map((n) => (
+            <DockItem key={n.l} item={n} mouseX={mouseX} active={active === n.id} onHover={setLabel} />
+          ))}
+          <div className="flex items-center gap-1 pl-3 ml-1 border-l border-white/10 h-10">
+            <kbd className="text-paper/70 text-[10px] uppercase tracking-[0.2em] px-2 py-1 rounded-md border border-white/15">⌘ K</kbd>
+          </div>
+        </motion.nav>
+      </Magnetic>
+    </motion.div>
+  );
+}
+
+function ScrollToTop({ progress }: { progress: MotionValue<number> }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => progress.on("change", (v) => setShow(v > 0.15)), [progress]);
+  const circumference = 2 * Math.PI * 18;
+  const dash = useTransform(progress, (v) => `${v * circumference} ${circumference}`);
+  return (
+    <motion.button
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      data-cursor="top"
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ opacity: show ? 1 : 0, scale: show ? 1 : 0.5 }}
+      whileHover={{ scale: 1.1, rotate: -8 }}
+      whileTap={{ scale: 0.9 }}
+      className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-paper border border-ink/15 shadow-lg flex items-center justify-center group"
+      aria-label="Scroll to top"
+    >
+      <svg viewBox="0 0 40 40" className="absolute inset-0 -rotate-90 w-full h-full">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="var(--ink)" strokeOpacity="0.1" strokeWidth="2" />
+        <motion.circle cx="20" cy="20" r="18" fill="none" stroke="var(--orange-accent)" strokeWidth="2" strokeLinecap="round" style={{ strokeDasharray: dash }} />
+      </svg>
+      <motion.svg viewBox="0 0 24 24" className="w-5 h-5 relative" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"
+        animate={{ y: [0, -2, 0] }} transition={{ duration: 1.6, repeat: Infinity }}>
+        <path d="M12 19V5M5 12l7-7 7 7" />
+      </motion.svg>
+    </motion.button>
+  );
+}
+
 function Index() {
   const [time, setTime] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -353,7 +508,7 @@ function Index() {
       {/* scroll progress */}
       <motion.div style={{ scaleX: scrollYProgress }} className="fixed top-0 left-0 right-0 h-1 bg-orange-accent z-[60] origin-left" />
 
-      <header className="flex items-center justify-between px-6 md:px-10 py-6 text-xs uppercase tracking-[0.18em] relative z-10">
+      <header id="top" className="flex items-center justify-between px-6 md:px-10 py-6 text-xs uppercase tracking-[0.18em] relative z-10">
         <motion.span initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="font-medium">Tanmay Trivedi</motion.span>
         <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="hidden sm:flex items-center gap-2 text-muted-foreground">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -595,26 +750,8 @@ function Index() {
         <span className="text-muted-foreground">Made with care in India</span>
       </footer>
 
-      {/* floating nav */}
-      <Magnetic strength={0.2}>
-        <motion.nav
-          initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-ink text-paper p-1.5 rounded-full shadow-lg backdrop-blur"
-        >
-          {[
-            { l: "Home", h: "#" },
-            { l: "About", h: "#about" },
-            { l: "Works", h: "#works" },
-            { l: "Services", h: "#services" },
-            { l: "Contact", h: "#contact" },
-          ].map((i, idx) => (
-            <a key={i.l} href={i.h} data-cursor="go"
-              className={`px-4 py-2 rounded-full text-sm transition ${idx === 0 ? "bg-yellow-accent text-ink" : "hover:bg-white/10"}`}>
-              {i.l}
-            </a>
-          ))}
-        </motion.nav>
-      </Magnetic>
+      <Dock time={time} />
+      <ScrollToTop progress={scrollYProgress} />
 
       <style>{`
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
