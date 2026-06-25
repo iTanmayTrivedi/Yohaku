@@ -508,7 +508,7 @@ function Index() {
       {/* scroll progress */}
       <motion.div style={{ scaleX: scrollYProgress }} className="fixed top-0 left-0 right-0 h-1 bg-orange-accent z-[60] origin-left" />
 
-      <header className="flex items-center justify-between px-6 md:px-10 py-6 text-xs uppercase tracking-[0.18em] relative z-10">
+      <header id="top" className="flex items-center justify-between px-6 md:px-10 py-6 text-xs uppercase tracking-[0.18em] relative z-10">
         <motion.span initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="font-medium">Tanmay Trivedi</motion.span>
         <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="hidden sm:flex items-center gap-2 text-muted-foreground">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
