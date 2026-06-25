@@ -595,26 +595,8 @@ function Index() {
         <span className="text-muted-foreground">Made with care in India</span>
       </footer>
 
-      {/* floating nav */}
-      <Magnetic strength={0.2}>
-        <motion.nav
-          initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-ink text-paper p-1.5 rounded-full shadow-lg backdrop-blur"
-        >
-          {[
-            { l: "Home", h: "#" },
-            { l: "About", h: "#about" },
-            { l: "Works", h: "#works" },
-            { l: "Services", h: "#services" },
-            { l: "Contact", h: "#contact" },
-          ].map((i, idx) => (
-            <a key={i.l} href={i.h} data-cursor="go"
-              className={`px-4 py-2 rounded-full text-sm transition ${idx === 0 ? "bg-yellow-accent text-ink" : "hover:bg-white/10"}`}>
-              {i.l}
-            </a>
-          ))}
-        </motion.nav>
-      </Magnetic>
+      <Dock time={time} />
+      <ScrollToTop progress={scrollYProgress} />
 
       <style>{`
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
