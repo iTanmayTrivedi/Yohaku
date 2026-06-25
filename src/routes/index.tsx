@@ -7,6 +7,7 @@ import {
   useSpring,
   useMotionValue,
   useInView,
+  AnimatePresence,
   type MotionValue,
 } from "motion/react";
 
@@ -15,38 +16,45 @@ export const Route = createFileRoute("/")({
 });
 
 const projects = [
-  { year: "2025", title: "Lumen", tag: "Product design", color: "var(--blue-accent)" },
-  { year: "2025", title: "Northwind", tag: "Marketing website", color: "var(--orange-accent)" },
-  { year: "2024", title: "Folio", tag: "Visual branding", color: "var(--yellow-accent)" },
-  { year: "2024", title: "Quartz", tag: "Product design", color: "var(--ink)" },
-  { year: "2023", title: "Maple & Co.", tag: "Marketing website", color: "var(--blue-accent)" },
-  { year: "2023", title: "Ember", tag: "Visual branding", color: "var(--orange-accent)" },
+  { year: "2025", title: "Lumen", tag: "Product design", desc: "An AI-native analytics workspace rebuilt around speed and clarity.", color: "var(--blue-accent)", role: "Lead Designer", time: "4 mo" },
+  { year: "2025", title: "Northwind", tag: "Marketing website", desc: "A landing page system for a B2B SaaS that tripled their sign-ups.", color: "var(--orange-accent)", role: "Designer & Dev", time: "6 wks" },
+  { year: "2024", title: "Folio", tag: "Visual branding", desc: "Identity, type, and motion for a boutique publishing house.", color: "var(--yellow-accent)", role: "Brand Designer", time: "8 wks" },
+  { year: "2024", title: "Quartz", tag: "Product design", desc: "A focused habit tracker that respects your attention.", color: "var(--ink)", role: "Product Designer", time: "3 mo" },
+  { year: "2023", title: "Maple & Co.", tag: "Marketing website", desc: "Editorial-led commerce experience for a heritage coffee roaster.", color: "var(--blue-accent)", role: "Designer", time: "5 wks" },
+  { year: "2023", title: "Ember", tag: "Visual branding", desc: "Warm, confident identity for a fireside conversations podcast.", color: "var(--orange-accent)", role: "Brand & Web", time: "4 wks" },
 ];
 
-// Magnetic button — pulls toward cursor
+const services = [
+  { num: "01", title: "Product Design", lines: ["UX strategy", "Interface design", "Design systems", "Prototyping"] },
+  { num: "02", title: "Web Development", lines: ["React / TanStack", "Framer Motion", "Tailwind systems", "Performance"] },
+  { num: "03", title: "Brand Identity", lines: ["Logo & marks", "Type systems", "Guidelines", "Launch assets"] },
+];
+
+const testimonials = [
+  { q: "Tanmay shipped faster than our entire in-house team — and the result felt like ours, not his.", a: "— Aanya Patel, Northwind" },
+  { q: "Easily one of the most considered designers I've worked with. Every detail had a reason.", a: "— Rohan Mehta, Lumen" },
+  { q: "He made our brand feel inevitable. Like it had always existed.", a: "— Sara Iyer, Folio" },
+];
+
+const stack = ["Figma", "React", "TanStack", "Tailwind", "Motion", "Rive", "Blender", "After Effects", "Notion", "Linear"];
+
+// ---------- helpers ----------
 function Magnetic({ children, strength = 0.35, className = "" }: { children: React.ReactNode; strength?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const sx = useSpring(x, { stiffness: 200, damping: 15 });
   const sy = useSpring(y, { stiffness: 200, damping: 15 });
-
-  const handleMove = (e: React.MouseEvent) => {
-    if (!ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    x.set((e.clientX - r.left - r.width / 2) * strength);
-    y.set((e.clientY - r.top - r.height / 2) * strength);
-  };
-  const reset = () => {
-    x.set(0);
-    y.set(0);
-  };
-
   return (
     <motion.div
       ref={ref}
-      onMouseMove={handleMove}
-      onMouseLeave={reset}
+      onMouseMove={(e) => {
+        if (!ref.current) return;
+        const r = ref.current.getBoundingClientRect();
+        x.set((e.clientX - r.left - r.width / 2) * strength);
+        y.set((e.clientY - r.top - r.height / 2) * strength);
+      }}
+      onMouseLeave={() => { x.set(0); y.set(0); }}
       style={{ x: sx, y: sy }}
       className={className}
     >
@@ -55,7 +63,6 @@ function Magnetic({ children, strength = 0.35, className = "" }: { children: Rea
   );
 }
 
-// Word-by-word reveal
 function RevealText({ text, className = "", delay = 0 }: { text: string; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-10%" });
@@ -78,79 +85,111 @@ function RevealText({ text, className = "", delay = 0 }: { text: string; classNa
   );
 }
 
-// 3D tilt project card
+function CharReveal({ text, className = "", delay = 0 }: { text: string; className?: string; delay?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  return (
+    <span ref={ref} className={className} aria-label={text}>
+      {[...text].map((c, i) => (
+        <motion.span
+          key={i}
+          className="inline-block"
+          initial={{ opacity: 0, y: 20, rotate: -8 }}
+          animate={inView ? { opacity: 1, y: 0, rotate: 0 } : {}}
+          transition={{ duration: 0.5, delay: delay + i * 0.03, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {c === " " ? "\u00A0" : c}
+        </motion.span>
+      ))}
+    </span>
+  );
+}
+
 function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scrollY: MotionValue<number> }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const inView = useInView(ref, { once: true, margin: "-15%" });
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
   const srx = useSpring(rx, { stiffness: 250, damping: 20 });
   const sry = useSpring(ry, { stiffness: 250, damping: 20 });
   const [hover, setHover] = useState(false);
-
-  const handleMove = (e: React.MouseEvent) => {
-    if (!ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width - 0.5;
-    const py = (e.clientY - r.top) / r.height - 0.5;
-    ry.set(px * 18);
-    rx.set(-py * 18);
-  };
-
-  // Subtle parallax per card based on index
-  const yOffset = useTransform(scrollY, [0, 1], [0, (i % 2 === 0 ? -30 : 30)]);
+  const yOffset = useTransform(scrollY, [0, 1], [0, (i % 2 === 0 ? -40 : 40)]);
 
   return (
     <motion.a
       ref={ref}
       href="#"
-      onMouseMove={handleMove}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => {
-        setHover(false);
-        rx.set(0);
-        ry.set(0);
+      data-cursor="open"
+      onMouseMove={(e) => {
+        if (!ref.current) return;
+        const r = ref.current.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        ry.set(px * 16);
+        rx.set(-py * 16);
+        mx.set(e.clientX - r.left);
+        my.set(e.clientY - r.top);
       }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); rx.set(0); ry.set(0); }}
       initial={{ opacity: 0, y: 60 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.8, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-      style={{
-        rotateX: srx,
-        rotateY: sry,
-        y: yOffset,
-        transformPerspective: 1000,
-        transformStyle: "preserve-3d",
-      }}
+      style={{ rotateX: srx, rotateY: sry, y: yOffset, transformPerspective: 1000, transformStyle: "preserve-3d" }}
       className="group relative rounded-3xl border border-ink/15 bg-paper p-6 aspect-[4/5] flex flex-col justify-between overflow-hidden"
     >
-      <div className="flex items-center justify-between text-sm" style={{ transform: "translateZ(40px)" }}>
+      {/* spotlight */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{
+          background: useTransform([mx, my], ([x, y]: number[]) => `radial-gradient(220px circle at ${x}px ${y}px, ${p.color}25, transparent 70%)`),
+        }}
+      />
+
+      <div className="flex items-center justify-between text-sm relative z-10" style={{ transform: "translateZ(40px)" }}>
         <span className="px-3 py-1 rounded-full bg-ink text-paper">{p.year}</span>
         <span className="text-muted-foreground">{p.tag}</span>
       </div>
 
       <motion.div
-        className="absolute inset-x-6 top-1/2 -translate-y-1/2 aspect-square rounded-2xl flex items-center justify-center"
+        className="absolute inset-x-6 top-1/2 -translate-y-1/2 aspect-square rounded-2xl flex items-center justify-center overflow-hidden"
         style={{ backgroundColor: p.color, transform: "translateZ(60px)" }}
-        animate={{ scale: hover ? 1.08 : 1, rotate: hover ? 4 : 0 }}
+        animate={{ scale: hover ? 1.06 : 1, rotate: hover ? 3 : 0 }}
         transition={{ type: "spring", stiffness: 200, damping: 15 }}
       >
         <motion.span
-          className="text-6xl font-display font-bold"
+          className="text-7xl font-display font-bold"
           style={{ color: p.color === "var(--yellow-accent)" ? "var(--ink)" : "white" }}
-          animate={{ y: hover ? -6 : 0 }}
+          animate={{ y: hover ? -8 : 0, scale: hover ? 1.1 : 1 }}
         >
           {p.title[0]}
         </motion.span>
+        {/* shine sweep */}
+        <motion.div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)" }}
+          initial={{ x: "-120%" }}
+          animate={{ x: hover ? "120%" : "-120%" }}
+          transition={{ duration: 0.9, ease: "easeOut" }}
+        />
       </motion.div>
 
-      <div className="relative z-10 flex items-center justify-between" style={{ transform: "translateZ(40px)" }}>
-        <span className="font-display text-xl font-semibold">{p.title}</span>
-        <motion.span
-          className="text-sm inline-flex items-center gap-1"
-          animate={{ x: hover ? 0 : -8, opacity: hover ? 1 : 0 }}
+      <div className="relative z-10 flex flex-col gap-1" style={{ transform: "translateZ(40px)" }}>
+        <div className="flex items-center justify-between">
+          <span className="font-display text-2xl font-semibold">{p.title}</span>
+          <motion.span className="text-sm inline-flex items-center gap-1" animate={{ x: hover ? 0 : -8, opacity: hover ? 1 : 0 }}>
+            Open →
+          </motion.span>
+        </div>
+        <motion.p
+          className="text-sm text-muted-foreground leading-snug"
+          initial={false}
+          animate={{ opacity: hover ? 1 : 0.7, y: hover ? 0 : 4 }}
         >
-          View →
-        </motion.span>
+          {p.desc}
+        </motion.p>
       </div>
     </motion.a>
   );
@@ -159,14 +198,13 @@ function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scro
 function CustomCursor() {
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
-  const sx = useSpring(x, { stiffness: 400, damping: 30 });
-  const sy = useSpring(y, { stiffness: 400, damping: 30 });
+  const sx = useSpring(x, { stiffness: 500, damping: 40 });
+  const sy = useSpring(y, { stiffness: 500, damping: 40 });
   const [label, setLabel] = useState<string | null>(null);
 
   useEffect(() => {
     const move = (e: MouseEvent) => {
-      x.set(e.clientX);
-      y.set(e.clientY);
+      x.set(e.clientX); y.set(e.clientY);
       const t = e.target as HTMLElement;
       const l = t.closest("[data-cursor]")?.getAttribute("data-cursor");
       setLabel(l ?? null);
@@ -176,95 +214,169 @@ function CustomCursor() {
   }, [x, y]);
 
   return (
-    <motion.div
-      style={{ x: sx, y: sy }}
-      className="pointer-events-none fixed top-0 left-0 z-[100] hidden md:block"
-    >
+    <motion.div style={{ x: sx, y: sy }} className="pointer-events-none fixed top-0 left-0 z-[100] hidden md:block">
       <motion.div
-        animate={{ scale: label ? 4 : 1 }}
+        animate={{ scale: label ? 5 : 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        className="relative -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-orange-accent mix-blend-difference"
+        className="relative -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-orange-accent mix-blend-difference flex items-center justify-center"
       >
-        {label && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[3px] font-medium text-white whitespace-nowrap"
-          >
-            {label}
-          </motion.span>
-        )}
+        <AnimatePresence>
+          {label && (
+            <motion.span
+              key={label}
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute text-[2.6px] font-semibold text-white whitespace-nowrap uppercase tracking-wider"
+            >
+              {label}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   );
 }
 
+function ServiceRow({ s, i }: { s: typeof services[0]; i: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-20%" });
+  const [hover, setHover] = useState(false);
+  return (
+    <motion.div
+      ref={ref}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+      className="relative border-t border-ink/15 py-8 md:py-12 cursor-pointer overflow-hidden group"
+      data-cursor="hire"
+    >
+      {/* sliding fill */}
+      <motion.div
+        className="absolute inset-0 bg-ink origin-left"
+        initial={{ scaleY: 0 }}
+        animate={{ scaleY: hover ? 1 : 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        style={{ transformOrigin: "bottom" }}
+      />
+      <div className="relative grid grid-cols-12 gap-4 items-baseline">
+        <motion.span
+          className="col-span-2 font-display text-xl md:text-2xl"
+          animate={{ color: hover ? "var(--paper)" : "var(--ink)" }}
+        >
+          {s.num}
+        </motion.span>
+        <motion.h3
+          className="col-span-6 md:col-span-5 font-display text-4xl md:text-6xl font-bold tracking-tight"
+          animate={{ color: hover ? "var(--paper)" : "var(--ink)", x: hover ? 16 : 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20 }}
+        >
+          {s.title}
+        </motion.h3>
+        <motion.ul
+          className="col-span-4 md:col-span-5 text-sm md:text-base space-y-1"
+          animate={{ color: hover ? "var(--paper)" : "var(--ink)" }}
+        >
+          {s.lines.map((l) => <li key={l}>— {l}</li>)}
+        </motion.ul>
+      </div>
+    </motion.div>
+  );
+}
+
+function Marquee({ items, dir = 1, accent }: { items: string[]; dir?: 1 | -1; accent: string }) {
+  return (
+    <div className="overflow-hidden">
+      <div
+        className="flex gap-10 whitespace-nowrap text-2xl md:text-4xl font-display font-medium will-change-transform"
+        style={{ animation: `marquee${dir === 1 ? "" : "Rev"} 35s linear infinite` }}
+      >
+        {Array.from({ length: 2 }).map((_, k) => (
+          <div key={k} className="flex gap-10 shrink-0 items-center">
+            {items.map((it, i) => (
+              <span key={i} className="flex items-center gap-10">
+                <span>{it}</span>
+                <span style={{ color: accent }}>✦</span>
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Index() {
   const [time, setTime] = useState("");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll();
-  const { scrollYProgress: heroProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
+  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
 
-  const heroY = useTransform(heroProgress, [0, 1], [0, -150]);
+  const heroY = useTransform(heroProgress, [0, 1], [0, -200]);
   const heroOpacity = useTransform(heroProgress, [0, 0.8], [1, 0]);
-  const heroScale = useTransform(heroProgress, [0, 1], [1, 0.85]);
+  const heroScale = useTransform(heroProgress, [0, 1], [1, 0.82]);
+  const blobY = useTransform(scrollYProgress, [0, 1], [0, -300]);
+  const blobRot = useTransform(scrollYProgress, [0, 1], [0, 180]);
 
   useEffect(() => {
-    const tick = () =>
-      setTime(
-        new Date().toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "Asia/Kolkata",
-        }),
-      );
+    const tick = () => setTime(new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" }));
     tick();
     const id = setInterval(tick, 30000);
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
   return (
     <main className="grid-paper min-h-screen relative overflow-hidden">
       <CustomCursor />
 
-      {/* scroll progress bar */}
+      {/* floating blob */}
       <motion.div
-        style={{ scaleX: scrollYProgress }}
-        className="fixed top-0 left-0 right-0 h-1 bg-orange-accent z-[60] origin-left"
-      />
+        style={{ y: blobY, rotate: blobRot }}
+        className="pointer-events-none absolute top-[20%] -right-40 w-[520px] h-[520px] rounded-full opacity-40 blur-3xl"
+      >
+        <div className="w-full h-full rounded-full" style={{ background: "radial-gradient(circle at 30% 30%, var(--orange-accent), transparent 60%)" }} />
+      </motion.div>
+      <motion.div
+        style={{ y: useTransform(scrollYProgress, [0, 1], [0, 200]) }}
+        className="pointer-events-none absolute top-[60%] -left-40 w-[480px] h-[480px] rounded-full opacity-30 blur-3xl"
+      >
+        <div className="w-full h-full rounded-full" style={{ background: "radial-gradient(circle at 70% 50%, var(--blue-accent), transparent 60%)" }} />
+      </motion.div>
+
+      {/* scroll progress */}
+      <motion.div style={{ scaleX: scrollYProgress }} className="fixed top-0 left-0 right-0 h-1 bg-orange-accent z-[60] origin-left" />
 
       <header className="flex items-center justify-between px-6 md:px-10 py-6 text-xs uppercase tracking-[0.18em] relative z-10">
-        <span className="font-medium">Tanmay Trivedi</span>
-        <span className="hidden sm:inline text-muted-foreground">
+        <motion.span initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="font-medium">Tanmay Trivedi</motion.span>
+        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="hidden sm:flex items-center gap-2 text-muted-foreground">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           Available for work · {time} IST
-        </span>
-        <span className="bg-ink text-paper px-3 py-1 rounded-full">2026</span>
+        </motion.span>
+        <button
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          data-cursor="toggle"
+          className="bg-ink text-paper px-3 py-1 rounded-full hover:bg-blue-accent transition"
+        >
+          {theme === "light" ? "Light" : "Dark"} · 2026
+        </button>
       </header>
 
-      {/* Hero */}
+      {/* HERO */}
       <section ref={heroRef} className="px-6 md:px-10 pt-10 md:pt-20 pb-32 relative">
-        <motion.div
-          style={{ y: heroY, opacity: heroOpacity, scale: heroScale }}
-          className="max-w-7xl mx-auto"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex items-center gap-3 mb-8"
-          >
+        <motion.div style={{ y: heroY, opacity: heroOpacity, scale: heroScale }} className="max-w-7xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="flex items-center gap-3 mb-8 flex-wrap">
             <span className="inline-flex items-center gap-2 bg-blue-accent text-white px-4 py-1.5 rounded-full text-sm">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
               Hey there!
             </span>
-            <motion.span
-              animate={{ rotate: [-6, 4, -6] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="font-hand text-2xl text-orange-accent inline-block"
-            >
+            <motion.span animate={{ rotate: [-6, 4, -6] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="font-hand text-2xl text-orange-accent inline-block">
               welcome →
             </motion.span>
           </motion.div>
@@ -273,45 +385,22 @@ function Index() {
             <RevealText text="TANMAY" className="block" />
             <div className="block relative">
               <RevealText text="TRIVEDI" delay={0.15} />
-              <motion.svg
-                aria-hidden
-                viewBox="0 0 400 60"
-                className="absolute -bottom-4 left-0 w-[55%] text-orange-accent"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ duration: 1.2, delay: 1, ease: "easeOut" }}
-              >
+              <motion.svg aria-hidden viewBox="0 0 400 60" className="absolute -bottom-4 left-0 w-[55%] text-orange-accent">
                 <motion.path
                   d="M5 40 C 80 10, 180 55, 260 25 S 380 45, 395 20"
-                  stroke="currentColor"
-                  strokeWidth="6"
-                  fill="none"
-                  strokeLinecap="round"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{ duration: 1.2, delay: 1 }}
+                  stroke="currentColor" strokeWidth="6" fill="none" strokeLinecap="round"
+                  initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, delay: 1 }}
                 />
               </motion.svg>
             </div>
           </h1>
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.4 }}
-            className="mt-16 grid md:grid-cols-12 gap-8 md:gap-12 items-end"
-          >
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 1.4 }} className="mt-16 grid md:grid-cols-12 gap-8 md:gap-12 items-end">
             <div className="md:col-span-7 flex flex-wrap gap-2 text-sm md:text-base">
               {["Product Designer", "Web Developer", "Brand Designer"].map((r, i) => (
-                <motion.span
-                  key={r}
-                  whileHover={{ scale: 1.08, y: -4 }}
-                  transition={{ type: "spring", stiffness: 400 }}
+                <motion.span key={r} whileHover={{ scale: 1.08, y: -4, rotate: [-2, 2, 0][i] }} transition={{ type: "spring", stiffness: 400 }} data-cursor="role"
                   className="px-4 py-2 rounded-full border border-ink/20 bg-paper cursor-pointer"
-                  style={{
-                    color: ["var(--orange-accent)", "var(--blue-accent)", "var(--ink)"][i],
-                  }}
-                >
+                  style={{ color: ["var(--orange-accent)", "var(--blue-accent)", "var(--ink)"][i] }}>
                   {r}
                 </motion.span>
               ))}
@@ -321,109 +410,180 @@ function Index() {
               <span className="font-hand text-3xl text-orange-accent">hold up</span>.
             </p>
           </motion.div>
+
+          {/* stats strip */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 }} className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 border-t border-ink/15 pt-8">
+            {[
+              { n: "40+", l: "Projects shipped" },
+              { n: "12", l: "Industries" },
+              { n: "8", l: "Awards & features" },
+              { n: "100%", l: "Repeat clients" },
+            ].map((s, i) => (
+              <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2 + i * 0.1 }}>
+                <div className="font-display text-5xl md:text-6xl font-bold">
+                  <CharReveal text={s.n} delay={2 + i * 0.1} />
+                </div>
+                <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground mt-2">{s.l}</div>
+              </motion.div>
+            ))}
+          </motion.div>
         </motion.div>
       </section>
 
-      {/* Marquee strip */}
-      <div className="border-y border-ink/15 bg-paper py-5 overflow-hidden">
-        <div className="flex gap-10 whitespace-nowrap animate-[scroll_30s_linear_infinite] text-2xl md:text-4xl font-display font-medium">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="flex gap-10 shrink-0">
-              <span>Designing experiences</span>
-              <span className="text-orange-accent">✦</span>
-              <span>that help brands grow</span>
-              <span className="text-blue-accent">●</span>
-              <span>Landing pages</span>
-              <span className="text-orange-accent">✦</span>
-              <span>Visual branding</span>
-              <span className="text-blue-accent">●</span>
-              <span>Product design</span>
-              <span className="text-orange-accent">✦</span>
-            </div>
-          ))}
-        </div>
+      {/* MARQUEE */}
+      <div className="border-y border-ink/15 bg-paper py-5">
+        <Marquee accent="var(--orange-accent)" items={["Designing experiences", "that help brands grow", "Landing pages", "Visual branding", "Product design"]} />
       </div>
 
-      {/* Works */}
-      <section id="works" className="px-6 md:px-10 py-24">
+      {/* ABOUT */}
+      <section id="about" className="px-6 md:px-10 py-24 relative">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-12 gap-12">
+          <div className="md:col-span-5">
+            <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="text-sm uppercase tracking-[0.18em] text-muted-foreground mb-3">↳ about</motion.p>
+            <h2 className="font-display text-5xl md:text-7xl font-bold tracking-tight leading-[0.9]">
+              <RevealText text="Designer," />
+              <span className="block text-blue-accent"><RevealText text="developer," delay={0.15} /></span>
+              <span className="block font-hand text-orange-accent text-6xl md:text-8xl">& storyteller.</span>
+            </h2>
+          </div>
+          <div className="md:col-span-7 space-y-6 text-lg leading-relaxed">
+            <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+              I'm a multidisciplinary designer based in India, helping early-stage teams ship products that feel inevitable. I sit somewhere between strategy, craft and engineering — and I like it there.
+            </motion.p>
+            <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}>
+              Currently freelancing with founders I admire. Previously at studios shipping work for SaaS, fintech and consumer brands.
+            </motion.p>
+            <div className="flex flex-wrap gap-2 pt-4">
+              {stack.map((t, i) => (
+                <motion.span key={t} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.04 }}
+                  whileHover={{ y: -3, backgroundColor: "var(--yellow-accent)" }}
+                  className="px-3 py-1 rounded-full border border-ink/20 bg-paper text-sm">
+                  {t}
+                </motion.span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* WORKS */}
+      <section id="works" className="px-6 md:px-10 py-24 relative">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
             <div>
-              <motion.p
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="text-sm uppercase tracking-[0.18em] text-muted-foreground mb-3"
-              >
-                ↓ below
-              </motion.p>
+              <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="text-sm uppercase tracking-[0.18em] text-muted-foreground mb-3">↓ below</motion.p>
               <h2 className="text-5xl md:text-7xl font-display font-bold tracking-tight">
                 <RevealText text="Curated" />
                 <span className="font-hand text-orange-accent"> Projects</span>
               </h2>
             </div>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="max-w-md text-muted-foreground"
-            >
-              A selection of work across branding, product design, and visual systems — each one built with intention.
+            <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="max-w-md text-muted-foreground">
+              A selection of work across branding, product design and visual systems — each one built with intention.
             </motion.p>
           </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {projects.map((p, i) => <ProjectCard key={p.title} p={p} i={i} scrollY={scrollYProgress} />)}
+          </div>
+        </div>
+      </section>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" data-cursor="open">
-            {projects.map((p, i) => (
-              <ProjectCard key={p.title} p={p} i={i} scrollY={scrollYProgress} />
+      {/* SERVICES */}
+      <section id="services" className="px-6 md:px-10 py-24 border-t border-ink/15 relative">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
+            <h2 className="text-5xl md:text-7xl font-display font-bold tracking-tight">
+              <RevealText text="What I" />
+              <span className="block text-blue-accent"><RevealText text="actually do." delay={0.15} /></span>
+            </h2>
+            <p className="font-hand text-2xl text-orange-accent">— pick your flavour</p>
+          </div>
+          <div>
+            {services.map((s, i) => <ServiceRow key={s.num} s={s} i={i} />)}
+            <div className="border-t border-ink/15" />
+          </div>
+        </div>
+      </section>
+
+      {/* MARQUEE 2 */}
+      <div className="border-y border-ink/15 bg-ink text-paper py-5">
+        <Marquee accent="var(--yellow-accent)" dir={-1} items={["Open for Q1 2026", "Based in India", "Working globally", "Selectively taking projects", "Let's talk"]} />
+      </div>
+
+      {/* TESTIMONIALS */}
+      <section className="px-6 md:px-10 py-24 relative">
+        <div className="max-w-7xl mx-auto">
+          <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="text-sm uppercase tracking-[0.18em] text-muted-foreground mb-12">↳ kind words</motion.p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((t, i) => (
+              <motion.figure key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.7 }}
+                whileHover={{ y: -8, rotate: i % 2 ? -1 : 1 }}
+                className="rounded-3xl border border-ink/15 p-7 bg-paper relative">
+                <span className="font-display text-6xl text-orange-accent leading-none">"</span>
+                <blockquote className="text-lg leading-snug -mt-4">{t.q}</blockquote>
+                <figcaption className="mt-6 text-sm text-muted-foreground">{t.a}</figcaption>
+              </motion.figure>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Big scroll-reveal statement */}
+      {/* PROCESS */}
+      <section className="px-6 md:px-10 py-24 border-t border-ink/15 relative">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-5xl md:text-7xl font-display font-bold tracking-tight mb-12">
+            <RevealText text="How we'll" />
+            <span className="font-hand text-orange-accent"> work together</span>
+          </h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            {[
+              { n: "01", t: "Intro call", d: "30 minutes to see if it's a fit." },
+              { n: "02", t: "Scope & plan", d: "Goals, timeline, deliverables — written down." },
+              { n: "03", t: "Build", d: "Weekly demos, async comments, fast loops." },
+              { n: "04", t: "Ship & support", d: "Launch together and stay close after." },
+            ].map((s, i) => (
+              <motion.div key={s.n} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                className="rounded-3xl border border-ink/15 p-6 bg-paper relative overflow-hidden group">
+                <motion.div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-orange-accent/15 group-hover:scale-150 transition-transform duration-700" />
+                <div className="font-display text-4xl font-bold text-orange-accent">{s.n}</div>
+                <h3 className="font-display text-2xl font-semibold mt-4">{s.t}</h3>
+                <p className="text-sm text-muted-foreground mt-2">{s.d}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BIG STATEMENT */}
       <section className="px-6 md:px-10 py-32 border-t border-ink/15">
         <div className="max-w-7xl mx-auto">
           <h3 className="text-4xl md:text-7xl font-display font-bold leading-tight tracking-tight">
             <RevealText text="Design is not what it looks like." />
-            <span className="block text-orange-accent">
-              <RevealText text="It's what it does." />
-            </span>
+            <span className="block text-orange-accent"><RevealText text="It's what it does." /></span>
           </h3>
         </div>
       </section>
 
-      {/* Contact */}
+      {/* CONTACT */}
       <section id="contact" className="px-6 md:px-10 py-24 border-t border-ink/15">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div>
             <p className="font-hand text-3xl text-orange-accent mb-4">let's talk —</p>
             <h2 className="text-5xl md:text-7xl font-display font-bold tracking-tight leading-[0.9]">
               <RevealText text="Got an idea?" />
-              <span className="text-blue-accent block">
-                <RevealText text="Let's build it." delay={0.2} />
-              </span>
+              <span className="text-blue-accent block"><RevealText text="Let's build it." delay={0.2} /></span>
             </h2>
+            <p className="text-muted-foreground mt-6 max-w-md">Replies within 24 hours · Booking projects for Q1 2026 · Based in India, working globally.</p>
           </div>
           <div className="flex flex-col gap-4 md:items-end">
             <Magnetic>
-              <a
-                data-cursor="mail"
-                href="mailto:tanmay@example.com"
-                className="inline-flex items-center gap-3 bg-ink text-paper px-6 py-4 rounded-full text-lg hover:bg-blue-accent transition"
-              >
+              <a data-cursor="mail" href="mailto:tanmay@example.com" className="inline-flex items-center gap-3 bg-ink text-paper px-6 py-4 rounded-full text-lg hover:bg-blue-accent transition">
                 tanmay@example.com →
               </a>
             </Magnetic>
-            <div className="flex gap-2 flex-wrap">
-              {["LinkedIn", "Twitter", "Read.cv", "Dribbble"].map((s) => (
-                <motion.a
-                  key={s}
-                  href="#"
-                  whileHover={{ y: -4, backgroundColor: "var(--yellow-accent)" }}
-                  className="px-4 py-2 rounded-full border border-ink/20 bg-paper text-sm"
-                >
-                  {s}
-                </motion.a>
+            <div className="flex gap-2 flex-wrap md:justify-end">
+              {["LinkedIn", "Twitter", "Read.cv", "Dribbble", "GitHub"].map((s) => (
+                <motion.a key={s} href="#" whileHover={{ y: -4, backgroundColor: "var(--yellow-accent)" }}
+                  className="px-4 py-2 rounded-full border border-ink/20 bg-paper text-sm">{s}</motion.a>
               ))}
             </div>
           </div>
@@ -435,26 +595,21 @@ function Index() {
         <span className="text-muted-foreground">Made with care in India</span>
       </footer>
 
-      {/* Floating menu pill */}
+      {/* floating nav */}
       <Magnetic strength={0.2}>
         <motion.nav
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-ink text-paper p-1.5 rounded-full shadow-lg"
+          initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-ink text-paper p-1.5 rounded-full shadow-lg backdrop-blur"
         >
           {[
             { l: "Home", h: "#" },
+            { l: "About", h: "#about" },
             { l: "Works", h: "#works" },
+            { l: "Services", h: "#services" },
             { l: "Contact", h: "#contact" },
           ].map((i, idx) => (
-            <a
-              key={i.l}
-              href={i.h}
-              className={`px-4 py-2 rounded-full text-sm transition ${
-                idx === 0 ? "bg-yellow-accent text-ink" : "hover:bg-white/10"
-              }`}
-            >
+            <a key={i.l} href={i.h} data-cursor="go"
+              className={`px-4 py-2 rounded-full text-sm transition ${idx === 0 ? "bg-yellow-accent text-ink" : "hover:bg-white/10"}`}>
               {i.l}
             </a>
           ))}
@@ -462,10 +617,8 @@ function Index() {
       </Magnetic>
 
       <style>{`
-        @keyframes scroll {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
+        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes marqueeRev { from { transform: translateX(-50%); } to { transform: translateX(0); } }
       `}</style>
     </main>
   );
