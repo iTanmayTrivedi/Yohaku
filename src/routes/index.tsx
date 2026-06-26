@@ -183,6 +183,96 @@ function ScrollFillStatement() {
   );
 }
 
+function FloatingSticker({ children, className = "", driftRange = 60, delay = 0 }: { children: React.ReactNode; className?: string; driftRange?: number; delay?: number }) {
+  const { scrollYProgress } = useScroll();
+  const y = useTransform(scrollYProgress, [0, 1], [0, -driftRange]);
+  return (
+    <motion.div
+      style={{ y }}
+      animate={{ rotate: [-12, 12, -12], translateY: [0, -10, 0] }}
+      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay }}
+      whileHover={{ scale: 1.3, rotate: 0 }}
+      className={`pointer-events-auto absolute select-none cursor-pointer ${className}`}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function ScrollDial() {
+  const { scrollYProgress } = useScroll();
+  const rotate = useTransform(scrollYProgress, [0, 1], [0, 720]);
+  return (
+    <motion.div style={{ rotate }} className="pointer-events-none fixed bottom-8 left-8 z-40 w-24 h-24 hidden lg:block">
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <defs>
+          <path id="dial-circle" d="M 50 50 m -38 0 a 38 38 0 1 1 76 0 a 38 38 0 1 1 -76 0" />
+        </defs>
+        <text fill="var(--ink)" fontSize="9" letterSpacing="2" className="font-display font-semibold uppercase">
+          <textPath href="#dial-circle">● scroll ● tanmay ● trivedi ● portfolio 2026 </textPath>
+        </text>
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center text-lg text-orange-accent">✦</div>
+    </motion.div>
+  );
+}
+
+function ConfettiBurst({ trigger }: { trigger: number }) {
+  const colors = ["var(--orange-accent)", "var(--blue-accent)", "var(--yellow-accent)", "var(--ink)"];
+  const pieces = trigger > 0 ? Array.from({ length: 24 }).map((_, i) => ({
+    id: `${trigger}-${i}`,
+    x: (Math.random() - 0.5) * 360,
+    y: -120 - Math.random() * 180,
+    r: Math.random() * 720 - 360,
+    c: colors[i % colors.length],
+    d: Math.random() * 0.15,
+    s: 6 + Math.random() * 10,
+  })) : [];
+  return (
+    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <AnimatePresence>
+        {pieces.map((p) => (
+          <motion.span
+            key={p.id}
+            initial={{ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1 }}
+            animate={{ x: p.x, y: p.y, rotate: p.r, opacity: 0, scale: 0.6 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.1, delay: p.d, ease: [0.22, 1, 0.36, 1] }}
+            style={{ width: p.s, height: p.s, backgroundColor: p.c, borderRadius: 2 }}
+            className="absolute"
+          />
+        ))}
+      </AnimatePresence>
+    </span>
+  );
+}
+
+function StickyStack({ items }: { items: string[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  const x = useTransform(scrollYProgress, [0, 1], ["8%", "-78%"]);
+  return (
+    <div ref={ref} className="relative h-[200vh]">
+      <div className="sticky top-0 h-screen flex flex-col justify-center overflow-hidden">
+        <p className="px-6 md:px-10 text-sm uppercase tracking-[0.18em] text-muted-foreground mb-6">↳ the toolkit</p>
+        <motion.div style={{ x }} className="flex gap-10 whitespace-nowrap will-change-transform">
+          {items.map((t, i) => (
+            <span
+              key={t}
+              className="shrink-0 font-display font-bold text-[14vw] leading-none tracking-tight"
+              style={i % 4 === 3
+                ? { color: "transparent", WebkitTextStroke: "2px var(--ink)" } as React.CSSProperties
+                : { color: i % 3 === 0 ? "var(--orange-accent)" : i % 3 === 1 ? "var(--ink)" : "var(--blue-accent)" }}
+            >
+              {t} ✦
+            </span>
+          ))}
+        </motion.div>
+        <p className="px-6 md:px-10 text-right text-sm uppercase tracking-[0.18em] text-muted-foreground mt-6">scroll →</p>
+      </div>
+    </div>
+  );
+}
 
 
 function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scrollY: MotionValue<number> }) {
