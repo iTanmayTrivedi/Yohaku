@@ -105,6 +105,86 @@ function CharReveal({ text, className = "", delay = 0 }: { text: string; classNa
   );
 }
 
+function ScrambleText({ text, trigger }: { text: string; trigger: boolean }) {
+  const [out, setOut] = useState(text);
+  useEffect(() => {
+    if (!trigger) { setOut(text); return; }
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%&*+";
+    let i = 0; let raf = 0;
+    const tick = () => {
+      i++;
+      const next = text.split("").map((c, idx) =>
+        idx < i / 2 ? c : (c === " " ? " " : chars[Math.floor(Math.random() * chars.length)])
+      ).join("");
+      setOut(next);
+      if (i / 2 < text.length) raf = requestAnimationFrame(tick);
+      else setOut(text);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [trigger, text]);
+  return <>{out}</>;
+}
+
+function Tilt({ children, className = "", max = 14 }: { children: React.ReactNode; className?: string; max?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const rx = useMotionValue(0); const ry = useMotionValue(0);
+  const srx = useSpring(rx, { stiffness: 220, damping: 18 });
+  const sry = useSpring(ry, { stiffness: 220, damping: 18 });
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={(e) => {
+        if (!ref.current) return;
+        const r = ref.current.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        ry.set(px * max); rx.set(-py * max);
+      }}
+      onMouseLeave={() => { rx.set(0); ry.set(0); }}
+      style={{ rotateX: srx, rotateY: sry, transformPerspective: 900, transformStyle: "preserve-3d" }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function ScrollWord({ word, start, end, progress, accent }: { word: string; start: number; end: number; progress: MotionValue<number>; accent?: boolean }) {
+  const opacity = useTransform(progress, [start, end], [0.12, 1]);
+  const y = useTransform(progress, [start, end], [14, 0]);
+  return (
+    <motion.span style={{ opacity, y, color: accent ? "var(--orange-accent)" : undefined }} className="inline-block mr-[0.18em]">
+      {word}
+    </motion.span>
+  );
+}
+
+function ScrollFillStatement() {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.8", "end 0.3"] });
+  const line1 = "Design is not what it looks like.".split(" ");
+  const line2 = "It's what it does.".split(" ");
+  const total = line1.length + line2.length;
+  return (
+    <div ref={ref} className="text-4xl md:text-7xl font-display font-bold leading-tight tracking-tight">
+      <div>
+        {line1.map((w, i) => (
+          <ScrollWord key={`a${i}`} word={w} start={i / total} end={(i + 1) / total} progress={scrollYProgress} />
+        ))}
+      </div>
+      <div>
+        {line2.map((w, i) => {
+          const idx = line1.length + i;
+          return <ScrollWord key={`b${i}`} word={w} start={idx / total} end={(idx + 1) / total} progress={scrollYProgress} accent />;
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+
 function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scrollY: MotionValue<number> }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const inView = useInView(ref, { once: true, margin: "-15%" });
