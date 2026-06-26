@@ -258,7 +258,7 @@ function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scro
 
       <div className="relative z-10 flex flex-col gap-1" style={{ transform: "translateZ(40px)" }}>
         <div className="flex items-center justify-between">
-          <span className="font-display text-2xl font-semibold">{p.title}</span>
+          <span className="font-display text-2xl font-semibold"><ScrambleText text={p.title} trigger={hover} /></span>
           <motion.span className="text-sm inline-flex items-center gap-1" animate={{ x: hover ? 0 : -8, opacity: hover ? 1 : 0 }}>
             Open →
           </motion.span>
