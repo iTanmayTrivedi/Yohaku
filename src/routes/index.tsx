@@ -735,6 +735,8 @@ function Index() {
   return (
     <main className="grid-paper min-h-screen relative overflow-hidden">
       <CustomCursor />
+      <ParticleTrail />
+
       <ScrollDial />
 
       {/* playful floating stickers */}
