@@ -635,6 +635,8 @@ function ScrollToTop({ progress }: { progress: MotionValue<number> }) {
 
 function Index() {
   const [time, setTime] = useState("");
+  const [burst, setBurst] = useState(0);
+
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll();
