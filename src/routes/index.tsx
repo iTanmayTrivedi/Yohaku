@@ -750,14 +750,16 @@ function Index() {
           <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="text-sm uppercase tracking-[0.18em] text-muted-foreground mb-12">↳ kind words</motion.p>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
-              <motion.figure key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.7 }}
-                whileHover={{ y: -8, rotate: i % 2 ? -1 : 1 }}
-                className="rounded-3xl border border-ink/15 p-7 bg-paper relative">
-                <span className="font-display text-6xl text-orange-accent leading-none">"</span>
-                <blockquote className="text-lg leading-snug -mt-4">{t.q}</blockquote>
-                <figcaption className="mt-6 text-sm text-muted-foreground">{t.a}</figcaption>
-              </motion.figure>
+              <motion.div key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.7 }}>
+                <Tilt className="rounded-3xl border border-ink/15 p-7 bg-paper relative h-full group overflow-hidden" max={10}>
+                  <motion.div aria-hidden className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-yellow-accent/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <span style={{ transform: "translateZ(40px)" }} className="block font-display text-6xl text-orange-accent leading-none relative">"</span>
+                  <blockquote style={{ transform: "translateZ(30px)" }} className="text-lg leading-snug -mt-4 relative">{t.q}</blockquote>
+                  <figcaption style={{ transform: "translateZ(20px)" }} className="mt-6 text-sm text-muted-foreground relative">{t.a}</figcaption>
+                </Tilt>
+              </motion.div>
             ))}
+
           </div>
         </div>
       </section>
