@@ -660,6 +660,19 @@ function Index() {
   return (
     <main className="grid-paper min-h-screen relative overflow-hidden">
       <CustomCursor />
+      <ScrollDial />
+
+      {/* playful floating stickers */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <FloatingSticker className="top-[8%] right-[6%] text-5xl" driftRange={120}>✺</FloatingSticker>
+        <FloatingSticker className="top-[26%] left-[4%] font-hand text-3xl text-orange-accent rotate-[-12deg]" driftRange={80} delay={0.4}>hi there!</FloatingSticker>
+        <FloatingSticker className="top-[78%] right-[8%] text-4xl text-blue-accent" driftRange={180} delay={0.8}>✦</FloatingSticker>
+        <FloatingSticker className="top-[140%] left-[3%] text-6xl text-yellow-accent" driftRange={220} delay={1.2}>◉</FloatingSticker>
+        <FloatingSticker className="top-[180%] right-[5%] font-hand text-3xl text-blue-accent rotate-[8deg]" driftRange={260} delay={0.6}>scroll more →</FloatingSticker>
+        <FloatingSticker className="top-[240%] left-[6%] text-5xl text-orange-accent" driftRange={300} delay={1.5}>✧</FloatingSticker>
+        <FloatingSticker className="top-[300%] right-[10%] text-4xl" driftRange={340} delay={0.9}>❋</FloatingSticker>
+      </div>
+
 
       {/* floating blob */}
       <motion.div
