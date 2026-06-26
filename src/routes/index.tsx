@@ -105,6 +105,86 @@ function CharReveal({ text, className = "", delay = 0 }: { text: string; classNa
   );
 }
 
+function ScrambleText({ text, trigger }: { text: string; trigger: boolean }) {
+  const [out, setOut] = useState(text);
+  useEffect(() => {
+    if (!trigger) { setOut(text); return; }
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%&*+";
+    let i = 0; let raf = 0;
+    const tick = () => {
+      i++;
+      const next = text.split("").map((c, idx) =>
+        idx < i / 2 ? c : (c === " " ? " " : chars[Math.floor(Math.random() * chars.length)])
+      ).join("");
+      setOut(next);
+      if (i / 2 < text.length) raf = requestAnimationFrame(tick);
+      else setOut(text);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [trigger, text]);
+  return <>{out}</>;
+}
+
+function Tilt({ children, className = "", max = 14 }: { children: React.ReactNode; className?: string; max?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const rx = useMotionValue(0); const ry = useMotionValue(0);
+  const srx = useSpring(rx, { stiffness: 220, damping: 18 });
+  const sry = useSpring(ry, { stiffness: 220, damping: 18 });
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={(e) => {
+        if (!ref.current) return;
+        const r = ref.current.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        ry.set(px * max); rx.set(-py * max);
+      }}
+      onMouseLeave={() => { rx.set(0); ry.set(0); }}
+      style={{ rotateX: srx, rotateY: sry, transformPerspective: 900, transformStyle: "preserve-3d" }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function ScrollWord({ word, start, end, progress, accent }: { word: string; start: number; end: number; progress: MotionValue<number>; accent?: boolean }) {
+  const opacity = useTransform(progress, [start, end], [0.12, 1]);
+  const y = useTransform(progress, [start, end], [14, 0]);
+  return (
+    <motion.span style={{ opacity, y, color: accent ? "var(--orange-accent)" : undefined }} className="inline-block mr-[0.18em]">
+      {word}
+    </motion.span>
+  );
+}
+
+function ScrollFillStatement() {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.8", "end 0.3"] });
+  const line1 = "Design is not what it looks like.".split(" ");
+  const line2 = "It's what it does.".split(" ");
+  const total = line1.length + line2.length;
+  return (
+    <div ref={ref} className="text-4xl md:text-7xl font-display font-bold leading-tight tracking-tight">
+      <div>
+        {line1.map((w, i) => (
+          <ScrollWord key={`a${i}`} word={w} start={i / total} end={(i + 1) / total} progress={scrollYProgress} />
+        ))}
+      </div>
+      <div>
+        {line2.map((w, i) => {
+          const idx = line1.length + i;
+          return <ScrollWord key={`b${i}`} word={w} start={idx / total} end={(idx + 1) / total} progress={scrollYProgress} accent />;
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+
 function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scrollY: MotionValue<number> }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const inView = useInView(ref, { once: true, margin: "-15%" });
@@ -178,7 +258,7 @@ function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scro
 
       <div className="relative z-10 flex flex-col gap-1" style={{ transform: "translateZ(40px)" }}>
         <div className="flex items-center justify-between">
-          <span className="font-display text-2xl font-semibold">{p.title}</span>
+          <span className="font-display text-2xl font-semibold"><ScrambleText text={p.title} trigger={hover} /></span>
           <motion.span className="text-sm inline-flex items-center gap-1" animate={{ x: hover ? 0 : -8, opacity: hover ? 1 : 0 }}>
             Open →
           </motion.span>
@@ -670,14 +750,16 @@ function Index() {
           <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="text-sm uppercase tracking-[0.18em] text-muted-foreground mb-12">↳ kind words</motion.p>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
-              <motion.figure key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.7 }}
-                whileHover={{ y: -8, rotate: i % 2 ? -1 : 1 }}
-                className="rounded-3xl border border-ink/15 p-7 bg-paper relative">
-                <span className="font-display text-6xl text-orange-accent leading-none">"</span>
-                <blockquote className="text-lg leading-snug -mt-4">{t.q}</blockquote>
-                <figcaption className="mt-6 text-sm text-muted-foreground">{t.a}</figcaption>
-              </motion.figure>
+              <motion.div key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.7 }}>
+                <Tilt className="rounded-3xl border border-ink/15 p-7 bg-paper relative h-full group overflow-hidden" max={10}>
+                  <motion.div aria-hidden className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-yellow-accent/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <span style={{ transform: "translateZ(40px)" }} className="block font-display text-6xl text-orange-accent leading-none relative">"</span>
+                  <blockquote style={{ transform: "translateZ(30px)" }} className="text-lg leading-snug -mt-4 relative">{t.q}</blockquote>
+                  <figcaption style={{ transform: "translateZ(20px)" }} className="mt-6 text-sm text-muted-foreground relative">{t.a}</figcaption>
+                </Tilt>
+              </motion.div>
             ))}
+
           </div>
         </div>
       </section>
@@ -711,11 +793,9 @@ function Index() {
       {/* BIG STATEMENT */}
       <section className="px-6 md:px-10 py-32 border-t border-ink/15">
         <div className="max-w-7xl mx-auto">
-          <h3 className="text-4xl md:text-7xl font-display font-bold leading-tight tracking-tight">
-            <RevealText text="Design is not what it looks like." />
-            <span className="block text-orange-accent"><RevealText text="It's what it does." /></span>
-          </h3>
+          <ScrollFillStatement />
         </div>
+
       </section>
 
       {/* CONTACT */}
@@ -737,10 +817,13 @@ function Index() {
             </Magnetic>
             <div className="flex gap-2 flex-wrap md:justify-end">
               {["LinkedIn", "Twitter", "Read.cv", "Dribbble", "GitHub"].map((s) => (
-                <motion.a key={s} href="#" whileHover={{ y: -4, backgroundColor: "var(--yellow-accent)" }}
-                  className="px-4 py-2 rounded-full border border-ink/20 bg-paper text-sm">{s}</motion.a>
+                <Magnetic key={s} strength={0.5}>
+                  <motion.a href="#" data-cursor={s.toLowerCase()} whileHover={{ y: -4, backgroundColor: "var(--yellow-accent)", scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    className="block px-4 py-2 rounded-full border border-ink/20 bg-paper text-sm">{s}</motion.a>
+                </Magnetic>
               ))}
             </div>
+
           </div>
         </div>
       </section>
