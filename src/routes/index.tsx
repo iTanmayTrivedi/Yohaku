@@ -793,11 +793,9 @@ function Index() {
       {/* BIG STATEMENT */}
       <section className="px-6 md:px-10 py-32 border-t border-ink/15">
         <div className="max-w-7xl mx-auto">
-          <h3 className="text-4xl md:text-7xl font-display font-bold leading-tight tracking-tight">
-            <RevealText text="Design is not what it looks like." />
-            <span className="block text-orange-accent"><RevealText text="It's what it does." /></span>
-          </h3>
+          <ScrollFillStatement />
         </div>
+
       </section>
 
       {/* CONTACT */}
