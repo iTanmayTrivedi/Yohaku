@@ -365,7 +365,80 @@ function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scro
   );
 }
 
+function ParticleTrail() {
+  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; dx: number; dy: number; size: number; color: string; hot: boolean }>>([]);
+  const idRef = useRef(0);
+  const lastRef = useRef({ x: 0, y: 0, t: 0 });
+
+  useEffect(() => {
+    const colors = ["var(--orange-accent)", "var(--blue-accent)", "var(--yellow-accent)"];
+    const onMove = (e: MouseEvent) => {
+      const now = performance.now();
+      const dx = e.clientX - lastRef.current.x;
+      const dy = e.clientY - lastRef.current.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 8 || now - lastRef.current.t < 16) return;
+      lastRef.current = { x: e.clientX, y: e.clientY, t: now };
+
+      const t = e.target as HTMLElement;
+      const hot = !!t.closest("[data-cursor],a,button");
+      const count = hot ? 4 : 1;
+
+      setParticles((prev) => {
+        const next = [...prev];
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = hot ? 30 + Math.random() * 60 : 10 + Math.random() * 20;
+          next.push({
+            id: idRef.current++,
+            x: e.clientX,
+            y: e.clientY,
+            dx: Math.cos(angle) * speed,
+            dy: Math.sin(angle) * speed - (hot ? 20 : 6),
+            size: hot ? 6 + Math.random() * 8 : 4 + Math.random() * 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            hot,
+          });
+        }
+        return next.slice(-80);
+      });
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, []);
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[90] hidden md:block">
+      <AnimatePresence>
+        {particles.map((p) => (
+          <motion.span
+            key={p.id}
+            initial={{ x: p.x, y: p.y, opacity: 0.9, scale: 1 }}
+            animate={{ x: p.x + p.dx, y: p.y + p.dy, opacity: 0, scale: 0.3, rotate: p.hot ? 180 : 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: p.hot ? 1.1 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+            onAnimationComplete={() => setParticles((prev) => prev.filter((q) => q.id !== p.id))}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: p.size,
+              height: p.size,
+              marginLeft: -p.size / 2,
+              marginTop: -p.size / 2,
+              borderRadius: p.hot ? 2 : 999,
+              backgroundColor: p.color,
+              boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+            }}
+          />
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function CustomCursor() {
+
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
   const sx = useSpring(x, { stiffness: 500, damping: 40 });
