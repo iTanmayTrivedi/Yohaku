@@ -773,6 +773,10 @@ function Index() {
         <Marquee accent="var(--orange-accent)" items={["Designing experiences", "that help brands grow", "Landing pages", "Visual branding", "Product design"]} />
       </div>
 
+      {/* STICKY HORIZONTAL STACK */}
+      <StickyStack items={stack} />
+
+
       {/* ABOUT */}
       <section id="about" className="px-6 md:px-10 py-24 relative">
         <div className="max-w-7xl mx-auto grid md:grid-cols-12 gap-12">
