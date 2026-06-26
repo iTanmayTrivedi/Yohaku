@@ -817,10 +817,13 @@ function Index() {
             </Magnetic>
             <div className="flex gap-2 flex-wrap md:justify-end">
               {["LinkedIn", "Twitter", "Read.cv", "Dribbble", "GitHub"].map((s) => (
-                <motion.a key={s} href="#" whileHover={{ y: -4, backgroundColor: "var(--yellow-accent)" }}
-                  className="px-4 py-2 rounded-full border border-ink/20 bg-paper text-sm">{s}</motion.a>
+                <Magnetic key={s} strength={0.5}>
+                  <motion.a href="#" data-cursor={s.toLowerCase()} whileHover={{ y: -4, backgroundColor: "var(--yellow-accent)", scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    className="block px-4 py-2 rounded-full border border-ink/20 bg-paper text-sm">{s}</motion.a>
+                </Magnetic>
               ))}
             </div>
+
           </div>
         </div>
       </section>
