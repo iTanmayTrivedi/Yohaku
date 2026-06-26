@@ -917,11 +917,20 @@ function Index() {
             <p className="text-muted-foreground mt-6 max-w-md">Replies within 24 hours · Booking projects for Q1 2026 · Based in India, working globally.</p>
           </div>
           <div className="flex flex-col gap-4 md:items-end">
-            <Magnetic>
-              <a data-cursor="mail" href="mailto:tanmay@example.com" className="inline-flex items-center gap-3 bg-ink text-paper px-6 py-4 rounded-full text-lg hover:bg-blue-accent transition">
-                tanmay@example.com →
-              </a>
-            </Magnetic>
+            <div className="relative">
+              <ConfettiBurst trigger={burst} />
+              <Magnetic>
+                <a
+                  data-cursor="mail"
+                  href="mailto:tanmay@example.com"
+                  onClick={() => setBurst((b) => b + 1)}
+                  className="inline-flex items-center gap-3 bg-ink text-paper px-6 py-4 rounded-full text-lg hover:bg-blue-accent transition relative"
+                >
+                  tanmay@example.com →
+                </a>
+              </Magnetic>
+            </div>
+
             <div className="flex gap-2 flex-wrap md:justify-end">
               {["LinkedIn", "Twitter", "Read.cv", "Dribbble", "GitHub"].map((s) => (
                 <Magnetic key={s} strength={0.5}>
