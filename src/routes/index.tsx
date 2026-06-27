@@ -6,8 +6,11 @@ import {
   useTransform,
   useSpring,
   useMotionValue,
+  useVelocity,
+  useAnimationFrame,
   useInView,
   AnimatePresence,
+  wrap,
   type MotionValue,
 } from "motion/react";
 
@@ -530,13 +533,26 @@ function ServiceRow({ s, i }: { s: typeof services[0]; i: number }) {
 }
 
 function Marquee({ items, dir = 1, accent }: { items: string[]; dir?: 1 | -1; accent: string }) {
+  const { scrollY } = useScroll();
+  const vel = useVelocity(scrollY);
+  const smoothVel = useSpring(vel, { damping: 50, stiffness: 400 });
+  const skew = useTransform(smoothVel, [-1500, 0, 1500], [-12, 0, 12]);
+  const speedFactor = useTransform(smoothVel, [-2000, 0, 2000], [4, 1, 4]);
+
+  const baseX = useMotionValue(0);
+  useAnimationFrame((_, delta) => {
+    const base = (dir === 1 ? -1 : 1) * (delta / 1000) * 80;
+    baseX.set(wrap(-50, 0, baseX.get() + base * speedFactor.get()));
+  });
+  const x = useTransform(baseX, (v) => `${v}%`);
+
   return (
     <div className="overflow-hidden">
-      <div
+      <motion.div
+        style={{ x, skewX: skew }}
         className="flex gap-10 whitespace-nowrap text-2xl md:text-4xl font-display font-medium will-change-transform"
-        style={{ animation: `marquee${dir === 1 ? "" : "Rev"} 35s linear infinite` }}
       >
-        {Array.from({ length: 2 }).map((_, k) => (
+        {Array.from({ length: 4 }).map((_, k) => (
           <div key={k} className="flex gap-10 shrink-0 items-center">
             {items.map((it, i) => (
               <span key={i} className="flex items-center gap-10">
@@ -546,10 +562,100 @@ function Marquee({ items, dir = 1, accent }: { items: string[]; dir?: 1 | -1; ac
             ))}
           </div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }
+
+// ---------- global mouse spotlight ----------
+function SpotlightOverlay() {
+  const mx = useMotionValue(-500);
+  const my = useMotionValue(-500);
+  const sx = useSpring(mx, { stiffness: 120, damping: 20, mass: 0.4 });
+  const sy = useSpring(my, { stiffness: 120, damping: 20, mass: 0.4 });
+  useEffect(() => {
+    const move = (e: MouseEvent) => { mx.set(e.clientX); my.set(e.clientY); };
+    window.addEventListener("mousemove", move);
+    return () => window.removeEventListener("mousemove", move);
+  }, [mx, my]);
+  const bg = useTransform(
+    [sx, sy] as MotionValue<number>[],
+    ([x, y]: number[]) =>
+      `radial-gradient(420px circle at ${x}px ${y}px, color-mix(in oklab, var(--orange-accent) 14%, transparent), transparent 70%)`
+  );
+  return (
+    <motion.div
+      aria-hidden
+      style={{ background: bg as unknown as string }}
+      className="pointer-events-none fixed inset-0 z-[55] mix-blend-multiply"
+    />
+  );
+}
+
+// ---------- animated count-up ----------
+function CountUp({ to, suffix = "", duration = 1.6 }: { to: number; suffix?: string; duration?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-15%" });
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!inView) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / (duration * 1000));
+      const eased = 1 - Math.pow(1 - p, 3);
+      setVal(Math.round(to * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, to, duration]);
+  return <span ref={ref}>{val}{suffix}</span>;
+}
+
+// ---------- kinetic scroll-pinned banner with rotating word ----------
+function KineticBanner() {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const xLeft = useTransform(scrollYProgress, [0, 1], ["20%", "-60%"]);
+  const xRight = useTransform(scrollYProgress, [0, 1], ["-40%", "30%"]);
+  const rot = useTransform(scrollYProgress, [0, 1], [-8, 8]);
+  const words = ["design.", "brand.", "motion.", "product.", "stories."];
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setIdx((i) => (i + 1) % words.length), 1600);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <section ref={ref} className="relative py-32 overflow-hidden border-y border-ink/15">
+      <motion.div style={{ x: xLeft, rotate: rot }} className="whitespace-nowrap font-display font-bold text-[18vw] leading-none tracking-[-0.06em] text-ink/10 select-none">
+        making the internet less boring —
+      </motion.div>
+      <div className="relative flex flex-wrap items-baseline justify-center gap-x-6 gap-y-2 px-6 my-10 font-display font-bold text-[10vw] md:text-[8vw] leading-[0.9] tracking-[-0.05em]">
+        <span>I build</span>
+        <span className="relative inline-block min-w-[6ch] text-center">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={words[idx]}
+              initial={{ y: "100%", opacity: 0, rotateX: -80 }}
+              animate={{ y: 0, opacity: 1, rotateX: 0 }}
+              exit={{ y: "-100%", opacity: 0, rotateX: 80 }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              className="inline-block text-orange-accent"
+              style={{ transformPerspective: 800 }}
+            >
+              {words[idx]}
+            </motion.span>
+          </AnimatePresence>
+        </span>
+      </div>
+      <motion.div style={{ x: xRight, rotate: useTransform(rot, (v) => -v) }} className="whitespace-nowrap font-display font-bold text-[18vw] leading-none tracking-[-0.06em] text-blue-accent/15 select-none">
+        ✦ shipping things that move ✦ shipping things that move
+      </motion.div>
+    </section>
+  );
+}
+
 
 // ---------- Mac-style dock with magnification + active indicator ----------
 const NAV = [
@@ -736,6 +842,7 @@ function Index() {
     <main className="grid-paper min-h-screen relative overflow-hidden">
       <CustomCursor />
       <ParticleTrail />
+      <SpotlightOverlay />
 
       <ScrollDial />
 
@@ -829,14 +936,15 @@ function Index() {
           {/* stats strip */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 }} className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 border-t border-ink/15 pt-8">
             {[
-              { n: "40+", l: "Projects shipped" },
-              { n: "12", l: "Industries" },
-              { n: "8", l: "Awards & features" },
-              { n: "100%", l: "Repeat clients" },
+              { v: 40, s: "+", l: "Projects shipped" },
+              { v: 12, s: "", l: "Industries" },
+              { v: 8, s: "", l: "Awards & features" },
+              { v: 100, s: "%", l: "Repeat clients" },
             ].map((s, i) => (
-              <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2 + i * 0.1 }}>
-                <div className="font-display text-5xl md:text-6xl font-bold">
-                  <CharReveal text={s.n} delay={2 + i * 0.1} />
+              <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2 + i * 0.1 }}
+                whileHover={{ y: -6 }}>
+                <div className="font-display text-5xl md:text-6xl font-bold tabular-nums">
+                  <CountUp to={s.v} suffix={s.s} />
                 </div>
                 <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground mt-2">{s.l}</div>
               </motion.div>
@@ -973,6 +1081,9 @@ function Index() {
           </div>
         </div>
       </section>
+
+      {/* KINETIC BANNER */}
+      <KineticBanner />
 
       {/* BIG STATEMENT */}
       <section className="px-6 md:px-10 py-32 border-t border-ink/15">
