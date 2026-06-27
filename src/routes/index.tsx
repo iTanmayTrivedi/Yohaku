@@ -6,7 +6,6 @@ import {
   useTransform,
   useSpring,
   useMotionValue,
-  useMotionValueEvent,
   useVelocity,
   useAnimationFrame,
   useInView,
