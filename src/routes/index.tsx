@@ -290,13 +290,33 @@ function ConfettiBurst({ trigger }: { trigger: number }) {
 
 function StickyStack({ items }: { items: string[] }) {
   const ref = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [scrollDist, setScrollDist] = useState(0);
+  useEffect(() => {
+    const calc = () => {
+      if (!trackRef.current) return;
+      const dist = Math.max(0, trackRef.current.scrollWidth - window.innerWidth + 120);
+      setScrollDist(dist);
+    };
+    calc();
+    const ro = new ResizeObserver(calc);
+    if (trackRef.current) ro.observe(trackRef.current);
+    window.addEventListener("resize", calc);
+    return () => { ro.disconnect(); window.removeEventListener("resize", calc); };
+  }, [items]);
+
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const x = useTransform(scrollYProgress, [0, 1], ["8%", "-78%"]);
+  const x = useTransform(scrollYProgress, [0, 1], [0, -scrollDist]);
+  const progressW = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
   return (
-    <div ref={ref} className="relative h-[200vh]">
+    <div ref={ref} className="relative bg-paper" style={{ height: `calc(100vh + ${scrollDist}px)` }}>
       <div className="sticky top-0 h-screen flex flex-col justify-center overflow-hidden">
-        <p className="px-6 md:px-10 text-sm uppercase tracking-[0.18em] text-muted-foreground mb-6">↳ the toolkit</p>
-        <motion.div style={{ x }} className="flex gap-10 whitespace-nowrap will-change-transform">
+        <div className="flex items-end justify-between px-6 md:px-10 mb-6">
+          <p className="text-sm uppercase tracking-[0.18em] text-muted-foreground">↳ the toolkit</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground hidden md:block">scroll to scrub →</p>
+        </div>
+        <motion.div ref={trackRef} style={{ x }} className="flex gap-10 whitespace-nowrap will-change-transform pl-6 md:pl-10">
           {items.map((t, i) => (
             <span
               key={t}
@@ -308,8 +328,13 @@ function StickyStack({ items }: { items: string[] }) {
               {t} ✦
             </span>
           ))}
+          <span className="shrink-0 w-[20vw]" />
         </motion.div>
-        <p className="px-6 md:px-10 text-right text-sm uppercase tracking-[0.18em] text-muted-foreground mt-6">scroll →</p>
+        <div className="px-6 md:px-10 mt-10">
+          <div className="h-[3px] bg-ink/10 rounded-full overflow-hidden">
+            <motion.div style={{ width: progressW }} className="h-full bg-orange-accent" />
+          </div>
+        </div>
       </div>
     </div>
   );
