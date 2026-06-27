@@ -936,14 +936,15 @@ function Index() {
           {/* stats strip */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 }} className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 border-t border-ink/15 pt-8">
             {[
-              { n: "40+", l: "Projects shipped" },
-              { n: "12", l: "Industries" },
-              { n: "8", l: "Awards & features" },
-              { n: "100%", l: "Repeat clients" },
+              { v: 40, s: "+", l: "Projects shipped" },
+              { v: 12, s: "", l: "Industries" },
+              { v: 8, s: "", l: "Awards & features" },
+              { v: 100, s: "%", l: "Repeat clients" },
             ].map((s, i) => (
-              <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2 + i * 0.1 }}>
-                <div className="font-display text-5xl md:text-6xl font-bold">
-                  <CharReveal text={s.n} delay={2 + i * 0.1} />
+              <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2 + i * 0.1 }}
+                whileHover={{ y: -6 }}>
+                <div className="font-display text-5xl md:text-6xl font-bold tabular-nums">
+                  <CountUp to={s.v} suffix={s.s} />
                 </div>
                 <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground mt-2">{s.l}</div>
               </motion.div>
