@@ -1374,6 +1374,7 @@ function Index() {
 
       <Dock time={time} />
       <ScrollToTop progress={scrollYProgress} />
+      <CaseStudyModal project={activeProject} onClose={() => setActiveProject(null)} />
 
       <style>{`
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
