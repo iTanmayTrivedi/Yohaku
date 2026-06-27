@@ -842,6 +842,7 @@ function Index() {
     <main className="grid-paper min-h-screen relative overflow-hidden">
       <CustomCursor />
       <ParticleTrail />
+      <SpotlightOverlay />
 
       <ScrollDial />
 
