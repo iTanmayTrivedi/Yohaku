@@ -341,8 +341,8 @@ function StickyStack({ items }: { items: string[] }) {
 }
 
 
-function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scrollY: MotionValue<number> }) {
-  const ref = useRef<HTMLAnchorElement>(null);
+function ProjectCard({ p, i, scrollY, onOpen }: { p: Project; i: number; scrollY: MotionValue<number>; onOpen: (p: Project) => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
   const inView = useInView(ref, { once: true, margin: "-15%" });
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
@@ -352,12 +352,17 @@ function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scro
   const sry = useSpring(ry, { stiffness: 250, damping: 20 });
   const [hover, setHover] = useState(false);
   const yOffset = useTransform(scrollY, [0, 1], [0, (i % 2 === 0 ? -40 : 40)]);
+  const spotlight = useTransform([mx, my] as MotionValue<number>[], ([x, y]: number[]) =>
+    `radial-gradient(220px circle at ${x}px ${y}px, ${p.color}25, transparent 70%)`
+  );
 
   return (
-    <motion.a
+    <motion.button
       ref={ref}
-      href="#"
+      type="button"
       data-cursor="open"
+      aria-label={`Open case study: ${p.title}`}
+      onClick={() => onOpen(p)}
       onMouseMove={(e) => {
         if (!ref.current) return;
         const r = ref.current.getBoundingClientRect();
@@ -374,15 +379,9 @@ function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scro
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.8, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
       style={{ rotateX: srx, rotateY: sry, y: yOffset, transformPerspective: 1000, transformStyle: "preserve-3d" }}
-      className="group relative rounded-3xl border border-ink/15 bg-paper p-6 aspect-[4/5] flex flex-col justify-between overflow-hidden"
+      className="group relative rounded-3xl border border-ink/15 bg-paper p-6 aspect-[4/5] flex flex-col justify-between overflow-hidden text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ink"
     >
-      {/* spotlight */}
-      <motion.div
-        className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{
-          background: useTransform([mx, my], ([x, y]: number[]) => `radial-gradient(220px circle at ${x}px ${y}px, ${p.color}25, transparent 70%)`),
-        }}
-      />
+      <motion.div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: spotlight }} />
 
       <div className="flex items-center justify-between text-sm relative z-10" style={{ transform: "translateZ(40px)" }}>
         <span className="px-3 py-1 rounded-full bg-ink text-paper">{p.year}</span>
@@ -402,7 +401,6 @@ function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scro
         >
           {p.title[0]}
         </motion.span>
-        {/* shine sweep */}
         <motion.div
           className="absolute inset-0"
           style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)" }}
@@ -427,9 +425,182 @@ function ProjectCard({ p, i, scrollY }: { p: typeof projects[0]; i: number; scro
           {p.desc}
         </motion.p>
       </div>
-    </motion.a>
+    </motion.button>
   );
 }
+
+// ---------- case-study modal ----------
+function CaseStudyModal({ project, onClose }: { project: Project | null; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const rx = useMotionValue(0);
+  const ry = useMotionValue(0);
+  const srx = useSpring(rx, { stiffness: 200, damping: 18 });
+  const sry = useSpring(ry, { stiffness: 200, damping: 18 });
+  const [openSection, setOpenSection] = useState<string | null>("challenge");
+
+  useEffect(() => {
+    if (!project) return;
+    setOpenSection("challenge");
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    setTimeout(() => closeRef.current?.focus(), 50);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+  }, [project, onClose]);
+
+  return (
+    <AnimatePresence>
+      {project && (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="case-title"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+        >
+          <motion.div
+            onClick={onClose}
+            className="absolute inset-0 bg-ink/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          />
+          <motion.div
+            initial={{ y: 60, opacity: 0, scale: 0.96 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 40, opacity: 0, scale: 0.97 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="relative max-w-5xl w-full max-h-[88vh] overflow-y-auto rounded-3xl bg-paper border border-ink/15 shadow-2xl"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-8 py-4 bg-paper/95 backdrop-blur border-b border-ink/10">
+              <div className="flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <span className="px-3 py-1 rounded-full bg-ink text-paper">{project.year}</span>
+                <span>{project.tag}</span>
+              </div>
+              <button
+                ref={closeRef}
+                onClick={onClose}
+                aria-label="Close case study (Esc)"
+                data-cursor="close"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full border border-ink/20 hover:bg-ink hover:text-paper transition text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+              >
+                <span>Close</span>
+                <kbd className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-current/30">Esc</kbd>
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-12 gap-8 p-6 md:p-10">
+              {/* 3D hero preview */}
+              <div className="md:col-span-5">
+                <motion.div
+                  ref={cardRef}
+                  onMouseMove={(e) => {
+                    if (!cardRef.current) return;
+                    const r = cardRef.current.getBoundingClientRect();
+                    const px = (e.clientX - r.left) / r.width - 0.5;
+                    const py = (e.clientY - r.top) / r.height - 0.5;
+                    ry.set(px * 22);
+                    rx.set(-py * 22);
+                  }}
+                  onMouseLeave={() => { rx.set(0); ry.set(0); }}
+                  style={{ rotateX: srx, rotateY: sry, transformPerspective: 1200, transformStyle: "preserve-3d", backgroundColor: project.color }}
+                  className="relative aspect-square rounded-3xl flex items-center justify-center overflow-hidden cursor-grab"
+                >
+                  <motion.span
+                    style={{ color: project.color === "var(--yellow-accent)" ? "var(--ink)" : "white", transform: "translateZ(60px)" }}
+                    className="font-display font-bold text-[24vmin] leading-none tracking-[-0.06em]"
+                  >
+                    {project.title[0]}
+                  </motion.span>
+                  <span style={{ transform: "translateZ(40px)" }} className="absolute bottom-5 left-5 text-xs uppercase tracking-[0.18em] text-paper/80">{project.title}</span>
+                  <span style={{ transform: "translateZ(40px)" }} className="absolute bottom-5 right-5 font-hand text-2xl" >
+                    <span style={{ color: project.color === "var(--yellow-accent)" ? "var(--ink)" : "white" }}>tilt me →</span>
+                  </span>
+                </motion.div>
+
+                <div className="grid grid-cols-3 gap-3 mt-5">
+                  {project.metrics.map((m) => (
+                    <div key={m.k} className="rounded-2xl border border-ink/15 p-3">
+                      <div className="font-display text-2xl font-bold">{m.v}</div>
+                      <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-1">{m.k}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* details */}
+              <div className="md:col-span-7 flex flex-col gap-6">
+                <div>
+                  <p className="font-hand text-2xl text-orange-accent">— case study</p>
+                  <h2 id="case-title" className="font-display text-5xl md:text-6xl font-bold tracking-tight leading-[0.95] mt-2">{project.title}</h2>
+                  <p className="text-lg text-muted-foreground mt-3 leading-snug">{project.desc}</p>
+                </div>
+
+                <dl className="grid grid-cols-3 gap-4 text-sm border-y border-ink/15 py-4">
+                  <div><dt className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Client</dt><dd className="mt-1 font-medium">{project.client}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Role</dt><dd className="mt-1 font-medium">{project.role}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Timeline</dt><dd className="mt-1 font-medium">{project.time}</dd></div>
+                </dl>
+
+                <div className="flex flex-col">
+                  {[
+                    { id: "challenge", t: "Challenge", b: project.challenge },
+                    { id: "approach", t: "Approach", b: project.approach },
+                    { id: "outcome", t: "Outcome", b: project.outcome },
+                  ].map((s) => {
+                    const open = openSection === s.id;
+                    return (
+                      <div key={s.id} className="border-t border-ink/15 last:border-b">
+                        <button
+                          onClick={() => setOpenSection(open ? null : s.id)}
+                          aria-expanded={open}
+                          aria-controls={`sec-${s.id}`}
+                          className="w-full flex items-center justify-between py-4 text-left group focus:outline-none focus-visible:bg-ink/5"
+                        >
+                          <span className="font-display text-xl font-semibold">{s.t}</span>
+                          <motion.span animate={{ rotate: open ? 45 : 0 }} className="text-2xl text-orange-accent">+</motion.span>
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {open && (
+                            <motion.div
+                              key="c"
+                              id={`sec-${s.id}`}
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <p className="pb-5 text-base leading-relaxed text-ink/80">{s.b}</p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">Tools</p>
+                  <div className="flex flex-wrap gap-2">
+                    {project.tools.map((t) => (
+                      <span key={t} className="px-3 py-1 rounded-full border border-ink/20 text-sm">{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+
 
 function ParticleTrail() {
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; dx: number; dy: number; size: number; color: string; hot: boolean }>>([]);
