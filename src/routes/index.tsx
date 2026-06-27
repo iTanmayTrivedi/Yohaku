@@ -18,13 +18,51 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const projects = [
-  { year: "2025", title: "Lumen", tag: "Product design", desc: "An AI-native analytics workspace rebuilt around speed and clarity.", color: "var(--blue-accent)", role: "Lead Designer", time: "4 mo" },
-  { year: "2025", title: "Northwind", tag: "Marketing website", desc: "A landing page system for a B2B SaaS that tripled their sign-ups.", color: "var(--orange-accent)", role: "Designer & Dev", time: "6 wks" },
-  { year: "2024", title: "Folio", tag: "Visual branding", desc: "Identity, type, and motion for a boutique publishing house.", color: "var(--yellow-accent)", role: "Brand Designer", time: "8 wks" },
-  { year: "2024", title: "Quartz", tag: "Product design", desc: "A focused habit tracker that respects your attention.", color: "var(--ink)", role: "Product Designer", time: "3 mo" },
-  { year: "2023", title: "Maple & Co.", tag: "Marketing website", desc: "Editorial-led commerce experience for a heritage coffee roaster.", color: "var(--blue-accent)", role: "Designer", time: "5 wks" },
-  { year: "2023", title: "Ember", tag: "Visual branding", desc: "Warm, confident identity for a fireside conversations podcast.", color: "var(--orange-accent)", role: "Brand & Web", time: "4 wks" },
+type Project = {
+  year: string; title: string; tag: string; desc: string; color: string;
+  role: string; time: string; client: string;
+  challenge: string; approach: string; outcome: string;
+  metrics: { k: string; v: string }[];
+  tools: string[];
+};
+
+const projects: Project[] = [
+  { year: "2025", title: "Lumen", tag: "Product design", desc: "An AI-native analytics workspace rebuilt around speed and clarity.", color: "var(--blue-accent)", role: "Lead Designer", time: "4 mo", client: "Lumen Labs",
+    challenge: "Their dashboards buried answers under three levels of filters. Time-to-insight was 4 minutes for power users — and they were losing pilots over it.",
+    approach: "Rebuilt the IA around an AI command bar, collapsed twelve nav items into four, and designed a token system that scales from compact tables to full canvases.",
+    outcome: "Daily active sessions doubled in the first month. Time-to-insight dropped from 4m to 28s. Closed two enterprise pilots on the redesign alone.",
+    metrics: [{ k: "DAU", v: "+112%" }, { k: "TTI", v: "28s" }, { k: "NPS", v: "+34" }],
+    tools: ["Figma", "React", "Framer Motion", "Storybook"] },
+  { year: "2025", title: "Northwind", tag: "Marketing website", desc: "A landing page system for a B2B SaaS that tripled their sign-ups.", color: "var(--orange-accent)", role: "Designer & Dev", time: "6 wks", client: "Northwind",
+    challenge: "Generic SaaS marketing site with a 1.8% conversion rate. Bounce was 71% on mobile and the team couldn't ship updates without engineering.",
+    approach: "Designed a modular page system in Figma, built it in TanStack + Tailwind, wired everything to a headless CMS so marketing ships without us.",
+    outcome: "Sign-ups tripled in eight weeks. Mobile bounce dropped to 38%. Marketing now ships pages weekly without engineering tickets.",
+    metrics: [{ k: "Sign-ups", v: "3×" }, { k: "Bounce", v: "-33pt" }, { k: "Ship time", v: "10×" }],
+    tools: ["Figma", "TanStack", "Tailwind", "Sanity"] },
+  { year: "2024", title: "Folio", tag: "Visual branding", desc: "Identity, type, and motion for a boutique publishing house.", color: "var(--yellow-accent)", role: "Brand Designer", time: "8 wks", client: "Folio Press",
+    challenge: "A 40-year-old publisher trying to court a younger readership without abandoning its literary heritage. Tricky balance.",
+    approach: "Drew a custom serif inspired by their archive, paired it with a confident sans, and built a motion language around the turning of a page.",
+    outcome: "Launched alongside a new fiction imprint that sold out its first print run. Brand was featured in Brand New and It's Nice That.",
+    metrics: [{ k: "First run", v: "Sold out" }, { k: "Press", v: "2 features" }, { k: "Imprints", v: "+1" }],
+    tools: ["Glyphs", "Figma", "After Effects"] },
+  { year: "2024", title: "Quartz", tag: "Product design", desc: "A focused habit tracker that respects your attention.", color: "var(--ink)", role: "Product Designer", time: "3 mo", client: "Quartz (indie)",
+    challenge: "The category is a graveyard of dopamine-loop apps. The founder wanted the opposite — something that helps you and then gets out of the way.",
+    approach: "Stripped the app to one screen, one tap, one streak. Designed a quiet visual system with generous space and zero notifications by default.",
+    outcome: "4.8★ on the App Store across 1,200+ reviews. Featured in Apple's 'Apps We Love' the month it launched.",
+    metrics: [{ k: "Rating", v: "4.8★" }, { k: "Reviews", v: "1.2k" }, { k: "Featured", v: "Apple" }],
+    tools: ["Figma", "SwiftUI", "Rive"] },
+  { year: "2023", title: "Maple & Co.", tag: "Marketing website", desc: "Editorial-led commerce experience for a heritage coffee roaster.", color: "var(--blue-accent)", role: "Designer", time: "5 wks", client: "Maple & Co.",
+    challenge: "A 60-year-old roaster with a beautiful story trapped in a Shopify template that looked like everyone else's.",
+    approach: "Reframed the storefront as a magazine — origin stories, brew guides, tasting notes — with commerce woven in instead of bolted on.",
+    outcome: "Average order value up 42%, time on site up 3×, and a wholesale pipeline that opened three new cafés in the first quarter.",
+    metrics: [{ k: "AOV", v: "+42%" }, { k: "Time on site", v: "3×" }, { k: "Wholesale", v: "+3" }],
+    tools: ["Figma", "Shopify Hydrogen", "Sanity"] },
+  { year: "2023", title: "Ember", tag: "Visual branding", desc: "Warm, confident identity for a fireside conversations podcast.", color: "var(--orange-accent)", role: "Brand & Web", time: "4 wks", client: "Ember FM",
+    challenge: "A two-person podcast with great taste, no budget, and a launch date in 30 days. Needed an identity that punches above its weight.",
+    approach: "Built the mark around a single ember glyph that animates across every touchpoint — cover art, intros, social, web — so the brand feels alive.",
+    outcome: "Hit #18 in Apple Podcasts Society & Culture in week three. Two sponsors signed before episode 10.",
+    metrics: [{ k: "Chart", v: "#18" }, { k: "Sponsors", v: "2" }, { k: "Episodes", v: "24" }],
+    tools: ["Figma", "After Effects", "Webflow"] },
 ];
 
 const services = [
