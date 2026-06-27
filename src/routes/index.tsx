@@ -1244,7 +1244,7 @@ function Index() {
             </motion.p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {projects.map((p, i) => <ProjectCard key={p.title} p={p} i={i} scrollY={scrollYProgress} />)}
+            {projects.map((p, i) => <ProjectCard key={p.title} p={p} i={i} scrollY={scrollYProgress} onOpen={setActiveProject} />)}
           </div>
         </div>
       </section>
