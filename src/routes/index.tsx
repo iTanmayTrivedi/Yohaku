@@ -1082,6 +1082,9 @@ function Index() {
         </div>
       </section>
 
+      {/* KINETIC BANNER */}
+      <KineticBanner />
+
       {/* BIG STATEMENT */}
       <section className="px-6 md:px-10 py-32 border-t border-ink/15">
         <div className="max-w-7xl mx-auto">
