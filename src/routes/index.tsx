@@ -1330,8 +1330,12 @@ function Index() {
       <StickyStack items={stack} />
 
 
+      <ElasticDivider color="var(--orange-accent)" />
+
       {/* ABOUT */}
       <section id="about" className="px-6 md:px-10 py-24 relative">
+        <MorphingBlob className="-left-40 top-10 w-[520px] h-[520px]" color="var(--blue-accent)" />
+        <MorphingBlob className="-right-40 bottom-0 w-[420px] h-[420px]" color="var(--orange-accent)" />
         <div className="max-w-7xl mx-auto grid md:grid-cols-12 gap-12">
           <div className="md:col-span-5">
             <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="text-sm uppercase tracking-[0.18em] text-muted-foreground mb-3">↳ about</motion.p>
