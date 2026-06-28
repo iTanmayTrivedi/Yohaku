@@ -1209,6 +1209,8 @@ function Index() {
       <CustomCursor />
       <ParticleTrail />
       <SpotlightOverlay />
+      <GrainOverlay />
+      <RippleClick />
 
       <ScrollDial />
 
