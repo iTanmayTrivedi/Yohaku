@@ -1470,6 +1470,8 @@ function Index() {
 
       </section>
 
+      <ElasticDivider color="var(--orange-accent)" />
+
       {/* CONTACT */}
       <section id="contact" className="px-6 md:px-10 py-24 border-t border-ink/15">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
