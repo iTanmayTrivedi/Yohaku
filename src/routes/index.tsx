@@ -1046,6 +1046,137 @@ function ScrollToTop({ progress }: { progress: MotionValue<number> }) {
   );
 }
 
+/* ============================================================
+   CRAZY EFFECTS — additive, non-breaking
+   ============================================================ */
+
+// Animated SVG grain — film noise overlay
+function GrainOverlay() {
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[55] opacity-[0.06] mix-blend-multiply">
+      <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+        <filter id="lov-grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch">
+            <animate attributeName="baseFrequency" dur="8s" values="0.9;1.1;0.9" repeatCount="indefinite" />
+          </feTurbulence>
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#lov-grain)" />
+      </svg>
+    </div>
+  );
+}
+
+// Click anywhere → expanding ring ripple
+function RippleClick() {
+  const [rings, setRings] = useState<{ id: number; x: number; y: number; c: string }[]>([]);
+  useEffect(() => {
+    const colors = ["var(--orange-accent)", "var(--blue-accent)", "var(--yellow-accent)"];
+    let n = 0;
+    const onDown = (e: PointerEvent) => {
+      const id = ++n;
+      setRings((r) => [...r, { id, x: e.clientX, y: e.clientY, c: colors[id % 3] }]);
+      setTimeout(() => setRings((r) => r.filter((x) => x.id !== id)), 900);
+    };
+    window.addEventListener("pointerdown", onDown);
+    return () => window.removeEventListener("pointerdown", onDown);
+  }, []);
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[58]">
+      <AnimatePresence>
+        {rings.map((r) => (
+          <motion.span
+            key={r.id}
+            initial={{ opacity: 0.6, scale: 0 }}
+            animate={{ opacity: 0, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+            style={{ left: r.x - 80, top: r.y - 80, borderColor: r.c }}
+            className="absolute w-40 h-40 rounded-full border-2"
+          />
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Scroll-velocity-reactive squiggle divider
+function ElasticDivider({ color = "var(--orange-accent)" }: { color?: string }) {
+  const { scrollY } = useScroll();
+  const v = useVelocity(scrollY);
+  const smooth = useSpring(v, { stiffness: 120, damping: 18 });
+  const amp = useTransform(smooth, [-2500, 0, 2500], [40, 8, 40]);
+  const [d, setD] = useState("M0 30 Q 360 30 720 30 T 1440 30");
+  useEffect(() => {
+    return amp.on("change", (a) => {
+      const pts: string[] = ["M0 30"];
+      const segs = 12;
+      for (let i = 1; i <= segs; i++) {
+        const x = (1440 / segs) * i;
+        const y = 30 + (i % 2 === 0 ? -a : a);
+        const cx = x - (1440 / segs) / 2;
+        pts.push(`Q ${cx} ${y} ${x} 30`);
+      }
+      setD(pts.join(" "));
+    });
+  }, [amp]);
+  return (
+    <div className="relative w-full h-16 overflow-hidden">
+      <svg viewBox="0 0 1440 60" preserveAspectRatio="none" className="w-full h-full">
+        <path d={d} stroke={color} strokeWidth="3" fill="none" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+}
+
+// Morphing blob — slowly tweens between organic shapes
+function MorphingBlob({ className = "", color = "var(--blue-accent)" }: { className?: string; color?: string }) {
+  const paths = [
+    "M421,308Q396,366,343,397Q290,428,232,419Q174,410,128,374Q82,338,68,283Q54,228,82,179Q110,130,160,103Q210,76,266,82Q322,88,372,118Q422,148,438,204Q454,260,421,308Z",
+    "M407,303Q379,356,331,397Q283,438,225,425Q167,412,121,375Q75,338,73,279Q71,220,99,170Q127,120,182,99Q237,78,289,93Q341,108,388,141Q435,174,438,217Q441,260,407,303Z",
+    "M415,305Q386,360,332,389Q278,418,221,415Q164,412,124,373Q84,334,71,278Q58,222,86,170Q114,118,167,98Q220,78,275,84Q330,90,378,121Q426,152,434,206Q442,260,415,305Z",
+  ];
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setI((x) => (x + 1) % paths.length), 2400);
+    return () => clearInterval(id);
+  }, [paths.length]);
+  return (
+    <div className={`pointer-events-none absolute ${className}`} aria-hidden>
+      <svg viewBox="0 0 500 500" className="w-full h-full">
+        <motion.path
+          animate={{ d: paths[i] }}
+          transition={{ duration: 2.4, ease: "easeInOut" }}
+          fill={color}
+          opacity="0.18"
+        />
+      </svg>
+    </div>
+  );
+}
+
+// Section reveal: text whose letters fly in from random offsets and settle
+function ShatterIn({ text, className = "" }: { text: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-15%" });
+  return (
+    <span ref={ref} className={`inline-block ${className}`} aria-label={text}>
+      {text.split("").map((ch, i) => (
+        <motion.span
+          key={i}
+          aria-hidden
+          className="inline-block"
+          initial={{ opacity: 0, x: (Math.random() - 0.5) * 200, y: (Math.random() - 0.5) * 200, rotate: (Math.random() - 0.5) * 90, filter: "blur(8px)" }}
+          animate={inView ? { opacity: 1, x: 0, y: 0, rotate: 0, filter: "blur(0px)" } : {}}
+          transition={{ duration: 0.9, delay: i * 0.025, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {ch === " " ? "\u00A0" : ch}
+        </motion.span>
+      ))}
+    </span>
+  );
+}
+
 function Index() {
   const [time, setTime] = useState("");
   const [burst, setBurst] = useState(0);
