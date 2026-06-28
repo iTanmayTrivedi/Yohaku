@@ -1411,6 +1411,8 @@ function Index() {
         <Marquee accent="var(--yellow-accent)" dir={-1} items={["Open for Q1 2026", "Based in India", "Working globally", "Selectively taking projects", "Let's talk"]} />
       </div>
 
+      <ElasticDivider color="var(--yellow-accent)" />
+
       {/* TESTIMONIALS */}
       <section className="px-6 md:px-10 py-24 relative">
         <div className="max-w-7xl mx-auto">
