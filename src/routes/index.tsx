@@ -769,13 +769,13 @@ function ServiceRow({ s, i }: { s: typeof services[0]; i: number }) {
 function Marquee({ items, dir = 1, accent }: { items: string[]; dir?: 1 | -1; accent: string }) {
   const { scrollY } = useScroll();
   const vel = useVelocity(scrollY);
-  const smoothVel = useSpring(vel, { damping: 50, stiffness: 400 });
-  const skew = useTransform(smoothVel, [-1500, 0, 1500], [-12, 0, 12]);
-  const speedFactor = useTransform(smoothVel, [-2000, 0, 2000], [4, 1, 4]);
+  const smoothVel = useSpring(vel, { damping: 60, stiffness: 200 });
+  const skew = useTransform(smoothVel, [-2000, 0, 2000], [-5, 0, 5]);
+  const speedFactor = useTransform(smoothVel, [-3000, 0, 3000], [2, 1, 2]);
 
   const baseX = useMotionValue(0);
   useAnimationFrame((_, delta) => {
-    const base = (dir === 1 ? -1 : 1) * (delta / 1000) * 80;
+    const base = (dir === 1 ? -1 : 1) * (delta / 1000) * 22;
     baseX.set(wrap(-50, 0, baseX.get() + base * speedFactor.get()));
   });
   const x = useTransform(baseX, (v) => `${v}%`);
