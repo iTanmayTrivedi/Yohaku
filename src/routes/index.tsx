@@ -769,13 +769,13 @@ function ServiceRow({ s, i }: { s: typeof services[0]; i: number }) {
 function Marquee({ items, dir = 1, accent }: { items: string[]; dir?: 1 | -1; accent: string }) {
   const { scrollY } = useScroll();
   const vel = useVelocity(scrollY);
-  const smoothVel = useSpring(vel, { damping: 50, stiffness: 400 });
-  const skew = useTransform(smoothVel, [-1500, 0, 1500], [-12, 0, 12]);
-  const speedFactor = useTransform(smoothVel, [-2000, 0, 2000], [4, 1, 4]);
+  const smoothVel = useSpring(vel, { damping: 60, stiffness: 200 });
+  const skew = useTransform(smoothVel, [-2000, 0, 2000], [-5, 0, 5]);
+  const speedFactor = useTransform(smoothVel, [-3000, 0, 3000], [2, 1, 2]);
 
   const baseX = useMotionValue(0);
   useAnimationFrame((_, delta) => {
-    const base = (dir === 1 ? -1 : 1) * (delta / 1000) * 80;
+    const base = (dir === 1 ? -1 : 1) * (delta / 1000) * 22;
     baseX.set(wrap(-50, 0, baseX.get() + base * speedFactor.get()));
   });
   const x = useTransform(baseX, (v) => `${v}%`);
@@ -922,10 +922,10 @@ function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mous
     const r = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - r.x - r.width / 2;
   });
-  const sizeT = useTransform(distance, [-140, 0, 140], [40, 72, 40]);
-  const size = useSpring(sizeT, { stiffness: 220, damping: 18, mass: 0.4 });
-  const liftT = useTransform(distance, [-140, 0, 140], [0, -14, 0]);
-  const lift = useSpring(liftT, { stiffness: 220, damping: 18 });
+  const scaleT = useTransform(distance, [-140, 0, 140], [1, 1.7, 1]);
+  const scale = useSpring(scaleT, { stiffness: 400, damping: 32, mass: 0.3 });
+  const liftT = useTransform(distance, [-140, 0, 140], [0, -12, 0]);
+  const lift = useSpring(liftT, { stiffness: 400, damping: 32, mass: 0.3 });
 
   return (
     <motion.a
@@ -934,8 +934,8 @@ function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mous
       data-cursor={item.l.toLowerCase()}
       onMouseEnter={() => onHover(item.l)}
       onMouseLeave={() => onHover(null)}
-      style={{ width: size, height: size, y: lift }}
-      className="relative flex items-center justify-center rounded-full text-paper"
+      style={{ scale, y: lift, willChange: "transform" }}
+      className="relative flex items-center justify-center rounded-full text-paper w-10 h-10 origin-bottom"
     >
       {active && (
         <motion.span
@@ -944,10 +944,10 @@ function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mous
           className="absolute inset-0 rounded-full bg-yellow-accent"
         />
       )}
-      <motion.svg viewBox="0 0 24 24" className="relative w-1/2 h-1/2" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
+      <svg viewBox="0 0 24 24" className="relative w-1/2 h-1/2" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
         style={{ color: active ? "var(--ink)" : "var(--paper)" }}>
         <path d={item.icon} />
-      </motion.svg>
+      </svg>
     </motion.a>
   );
 }
@@ -1205,7 +1205,7 @@ function Index() {
   }, [theme]);
 
   return (
-    <main className="grid-paper min-h-screen relative overflow-hidden">
+    <main className="grid-paper min-h-screen relative overflow-x-clip">
       <CustomCursor />
       <ParticleTrail />
       <SpotlightOverlay />
