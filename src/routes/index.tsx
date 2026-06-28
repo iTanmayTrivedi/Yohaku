@@ -1205,7 +1205,7 @@ function Index() {
   }, [theme]);
 
   return (
-    <main className="grid-paper min-h-screen relative overflow-hidden">
+    <main className="grid-paper min-h-screen relative overflow-x-clip">
       <CustomCursor />
       <ParticleTrail />
       <SpotlightOverlay />
