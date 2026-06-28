@@ -1365,8 +1365,11 @@ function Index() {
         </div>
       </section>
 
+      <ElasticDivider color="var(--blue-accent)" />
+
       {/* WORKS */}
       <section id="works" className="px-6 md:px-10 py-24 relative">
+        <MorphingBlob className="right-[-200px] top-[20%] w-[500px] h-[500px]" color="var(--yellow-accent)" />
         <div className="max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
             <div>
