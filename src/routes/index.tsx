@@ -922,10 +922,9 @@ function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mous
     const r = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - r.x - r.width / 2;
   });
-  const scaleT = useTransform(distance, [-140, 0, 140], [1, 1.7, 1]);
-  const scale = useSpring(scaleT, { stiffness: 400, damping: 32, mass: 0.3 });
-  const liftT = useTransform(distance, [-140, 0, 140], [0, -12, 0]);
-  const lift = useSpring(liftT, { stiffness: 400, damping: 32, mass: 0.3 });
+  // Direct transforms — no spring — for instant, lag-free magnification (the macOS feel)
+  const scale = useTransform(distance, [-140, 0, 140], [1, 1.6, 1]);
+  const lift = useTransform(distance, [-140, 0, 140], [0, -10, 0]);
 
   return (
     <motion.a
@@ -951,6 +950,7 @@ function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mous
     </motion.a>
   );
 }
+
 
 function Dock({ time }: { time: string }) {
   const active = useActiveSection(NAV.map((n) => n.id));
