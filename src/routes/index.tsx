@@ -958,16 +958,15 @@ function Dock({ time }: { time: string }) {
   const navRef = useRef<HTMLElement>(null);
   const itemRefs = useRef<(HTMLSpanElement | null)[]>([]);
   // One MotionValue per item holding its cached x-center.
-  const centersRef = useRef<MotionValue<number>[]>(NAV.map(() => null as unknown as MotionValue<number>));
-  // Initialize once
-  if (centersRef.current[0] == null) {
-    centersRef.current = NAV.map(() => new (require ? Object : Object)() as MotionValue<number>);
-  }
-  // Properly initialize MotionValues
-  const centers = useRef<MotionValue<number>[]>([]);
-  if (centers.current.length === 0) {
-    centers.current = NAV.map(() => new MotionValueCtor(0));
-  }
+  // NAV length is constant, so calling hooks per index is safe.
+  const c0 = useMotionValue(0);
+  const c1 = useMotionValue(0);
+  const c2 = useMotionValue(0);
+  const c3 = useMotionValue(0);
+  const c4 = useMotionValue(0);
+  const centers = [c0, c1, c2, c3, c4];
+
+
 
   // Measure centers on mount, resize, and scroll.
   useEffect(() => {
