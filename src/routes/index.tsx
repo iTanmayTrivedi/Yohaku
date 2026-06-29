@@ -974,7 +974,7 @@ function Dock({ time }: { time: string }) {
       itemRefs.current.forEach((el, i) => {
         if (!el) return;
         const r = el.getBoundingClientRect();
-        centers.current[i]?.set(r.x + r.width / 2);
+        centers[i]?.set(r.x + r.width / 2);
       });
     };
     measure();
