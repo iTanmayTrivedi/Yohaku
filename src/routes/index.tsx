@@ -916,19 +916,17 @@ function useActiveSection(ids: string[]) {
   return active;
 }
 
-function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mouseX: MotionValue<number>; active: boolean; onHover: (l: string | null) => void }) {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const distance = useTransform(mouseX, (val) => {
-    const r = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
-    return val - r.x - r.width / 2;
-  });
-  // Direct transforms — no spring — for instant, lag-free magnification (the macOS feel)
-  const scale = useTransform(distance, [-140, 0, 140], [1, 1.6, 1]);
-  const lift = useTransform(distance, [-140, 0, 140], [0, -10, 0]);
+function DockItem({ item, mouseX, center, active, onHover }: { item: typeof NAV[0]; mouseX: MotionValue<number>; center: MotionValue<number>; active: boolean; onHover: (l: string | null) => void }) {
+  // Distance is derived from cached center MV (no getBoundingClientRect per frame).
+  const distance = useTransform([mouseX, center] as const, ([m, c]: number[]) => m - c);
+  const scaleT = useTransform(distance, [-150, 0, 150], [1, 1.55, 1]);
+  const liftT = useTransform(distance, [-150, 0, 150], [0, -12, 0]);
+  // Light, fast spring for silky-smooth magnification.
+  const scale = useSpring(scaleT, { stiffness: 700, damping: 38, mass: 0.25 });
+  const lift = useSpring(liftT, { stiffness: 700, damping: 38, mass: 0.25 });
 
   return (
     <motion.a
-      ref={ref}
       href={item.h}
       data-cursor={item.l.toLowerCase()}
       onMouseEnter={() => onHover(item.l)}
@@ -957,6 +955,39 @@ function Dock({ time }: { time: string }) {
   const mouseX = useMotionValue(Infinity);
   const [label, setLabel] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const itemRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  // One MotionValue per item holding its cached x-center.
+  // NAV length is constant, so calling hooks per index is safe.
+  const c0 = useMotionValue(0);
+  const c1 = useMotionValue(0);
+  const c2 = useMotionValue(0);
+  const c3 = useMotionValue(0);
+  const c4 = useMotionValue(0);
+  const centers = [c0, c1, c2, c3, c4];
+
+
+
+  // Measure centers on mount, resize, and scroll.
+  useEffect(() => {
+    const measure = () => {
+      itemRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        centers[i]?.set(r.x + r.width / 2);
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, { passive: true });
+    const ro = new ResizeObserver(measure);
+    if (navRef.current) ro.observe(navRef.current);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure);
+      ro.disconnect();
+    };
+  }, [open]);
 
   // reveal on scroll past hero
   useEffect(() => {
@@ -973,7 +1004,6 @@ function Dock({ time }: { time: string }) {
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2"
     >
-      {/* hovered label bubble */}
       <AnimatePresence>
         {label && (
           <motion.div
@@ -990,11 +1020,11 @@ function Dock({ time }: { time: string }) {
       </AnimatePresence>
 
       <motion.nav
+        ref={navRef}
         onMouseMove={(e) => mouseX.set(e.clientX)}
         onMouseLeave={() => mouseX.set(Infinity)}
         className="relative flex items-end gap-2 bg-ink/95 backdrop-blur-md border border-white/10 px-3 py-2 rounded-full shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]"
       >
-        {/* shimmer line */}
         <motion.span
           aria-hidden
           className="absolute top-0 left-0 h-px w-1/3 bg-gradient-to-r from-transparent via-yellow-accent to-transparent"
@@ -1005,8 +1035,10 @@ function Dock({ time }: { time: string }) {
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           <span className="text-paper text-[10px] uppercase tracking-[0.2em] font-medium">{time || "live"}</span>
         </div>
-        {NAV.map((n) => (
-          <DockItem key={n.l} item={n} mouseX={mouseX} active={active === n.id} onHover={setLabel} />
+        {NAV.map((n, i) => (
+          <span key={n.l} ref={(el) => { itemRefs.current[i] = el; }} className="inline-block">
+            <DockItem item={n} mouseX={mouseX} center={centers[i]} active={active === n.id} onHover={setLabel} />
+          </span>
         ))}
         <div className="flex items-center gap-1 pl-3 ml-1 border-l border-white/10 h-10">
           <kbd className="text-paper/70 text-[10px] uppercase tracking-[0.2em] px-2 py-1 rounded-md border border-white/15">⌘ K</kbd>
@@ -1016,6 +1048,7 @@ function Dock({ time }: { time: string }) {
     </motion.div>
   );
 }
+
 
 function ScrollToTop({ progress }: { progress: MotionValue<number> }) {
   const [show, setShow] = useState(false);
@@ -1176,10 +1209,145 @@ function ShatterIn({ text, className = "" }: { text: string; className?: string 
   );
 }
 
+// ---------- Aesthetic Loading Screen ----------
+function LoadingScreen({ onDone }: { onDone: () => void }) {
+  const [count, setCount] = useState(0);
+  const [gone, setGone] = useState(false);
+  useEffect(() => {
+    let raf = 0;
+    const start = performance.now();
+    const dur = 1800;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / dur);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - p, 3);
+      setCount(Math.round(eased * 100));
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else setTimeout(() => setGone(true), 350);
+    };
+    raf = requestAnimationFrame(tick);
+    document.body.style.overflow = "hidden";
+    return () => { cancelAnimationFrame(raf); document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <AnimatePresence onExitComplete={() => { document.body.style.overflow = ""; onDone(); }}>
+      {!gone && (
+        <motion.div
+          key="loader"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: [0.65, 0, 0.35, 1] }}
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-ink text-paper overflow-hidden"
+        >
+          {/* slow drifting grain/blobs */}
+          <motion.div
+            aria-hidden
+            initial={{ scale: 0.6, opacity: 0.3 }}
+            animate={{ scale: [0.6, 1.1, 0.8], opacity: [0.3, 0.55, 0.4] }}
+            transition={{ duration: 2.2, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" }}
+            className="absolute -top-40 -left-40 w-[60vw] h-[60vw] rounded-full blur-3xl"
+            style={{ background: "radial-gradient(circle, var(--orange-accent), transparent 60%)" }}
+          />
+          <motion.div
+            aria-hidden
+            initial={{ scale: 0.7, opacity: 0.25 }}
+            animate={{ scale: [0.7, 1.2, 0.9], opacity: [0.25, 0.45, 0.3] }}
+            transition={{ duration: 2.6, ease: "easeInOut", repeat: Infinity, repeatType: "reverse", delay: 0.3 }}
+            className="absolute -bottom-40 -right-40 w-[60vw] h-[60vw] rounded-full blur-3xl"
+            style={{ background: "radial-gradient(circle, var(--blue-accent), transparent 60%)" }}
+          />
+
+          {/* center content */}
+          <div className="relative z-10 flex flex-col items-center gap-10 px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="flex items-center gap-2 text-xs uppercase tracking-[0.32em] text-paper/70"
+            >
+              <span className="w-2 h-2 rounded-full bg-yellow-accent animate-pulse" />
+              Loading the folio
+            </motion.div>
+
+            <div className="overflow-hidden">
+              <motion.div
+                initial={{ y: "110%" }}
+                animate={{ y: 0 }}
+                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+                className="font-display font-bold leading-[0.85] tracking-[-0.05em] text-[18vw] md:text-[10vw] text-center"
+              >
+                TANMAY<span className="text-orange-accent">.</span>
+              </motion.div>
+            </div>
+
+            <div className="flex items-end gap-4 w-[min(560px,80vw)]">
+              <div className="flex-1">
+                <div className="h-[2px] w-full bg-paper/15 overflow-hidden rounded-full">
+                  <motion.div
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: count / 100 }}
+                    transition={{ ease: "easeOut", duration: 0.15 }}
+                    style={{ transformOrigin: "left" }}
+                    className="h-full bg-paper"
+                  />
+                </div>
+                <div className="flex justify-between mt-3 text-[10px] uppercase tracking-[0.3em] text-paper/50">
+                  <span>2026 — folio v.4</span>
+                  <span>India ⇄ everywhere</span>
+                </div>
+              </div>
+              <div className="font-display font-bold text-4xl md:text-5xl tabular-nums w-[3.2ch] text-right">
+                {String(count).padStart(2, "0")}
+              </div>
+            </div>
+          </div>
+
+          {/* curtain slide */}
+          <motion.div
+            aria-hidden
+            initial={{ y: "100%" }}
+            animate={{ y: gone ? "0%" : "100%" }}
+            className="absolute inset-0 bg-paper"
+            transition={{ duration: 0.7, ease: [0.76, 0, 0.24, 1] }}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ---------- Lenis smooth scroll (buttery global momentum) ----------
+function useLenisSmoothScroll() {
+  useEffect(() => {
+    let lenis: import("lenis").default | undefined;
+    let raf = 0;
+    let cancelled = false;
+    (async () => {
+      const Lenis = (await import("lenis")).default;
+      if (cancelled) return;
+      lenis = new Lenis({
+        duration: 1.15,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        touchMultiplier: 1.4,
+      });
+      const loop = (time: number) => { lenis?.raf(time); raf = requestAnimationFrame(loop); };
+      raf = requestAnimationFrame(loop);
+    })();
+    return () => { cancelled = true; cancelAnimationFrame(raf); lenis?.destroy(); };
+  }, []);
+}
+
 function Index() {
+  const [loading, setLoading] = useState(true);
+  useLenisSmoothScroll();
+
   const [time, setTime] = useState("");
   const [burst, setBurst] = useState(0);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const heroRef = useRef<HTMLElement>(null);
@@ -1205,6 +1373,7 @@ function Index() {
 
   return (
     <main className="grid-paper min-h-screen relative overflow-x-clip">
+      {loading && <LoadingScreen onDone={() => setLoading(false)} />}
       <CustomCursor />
       <ParticleTrail />
       <SpotlightOverlay />
