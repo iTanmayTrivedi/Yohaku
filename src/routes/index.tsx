@@ -922,10 +922,9 @@ function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mous
     const r = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - r.x - r.width / 2;
   });
-  const scaleT = useTransform(distance, [-140, 0, 140], [1, 1.7, 1]);
-  const scale = useSpring(scaleT, { stiffness: 400, damping: 32, mass: 0.3 });
-  const liftT = useTransform(distance, [-140, 0, 140], [0, -12, 0]);
-  const lift = useSpring(liftT, { stiffness: 400, damping: 32, mass: 0.3 });
+  // Direct transforms — no spring — for instant, lag-free magnification (the macOS feel)
+  const scale = useTransform(distance, [-140, 0, 140], [1, 1.6, 1]);
+  const lift = useTransform(distance, [-140, 0, 140], [0, -10, 0]);
 
   return (
     <motion.a
@@ -951,6 +950,7 @@ function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mous
     </motion.a>
   );
 }
+
 
 function Dock({ time }: { time: string }) {
   const active = useActiveSection(NAV.map((n) => n.id));
@@ -989,31 +989,30 @@ function Dock({ time }: { time: string }) {
         )}
       </AnimatePresence>
 
-      <Magnetic strength={0.15}>
-        <motion.nav
-          onMouseMove={(e) => mouseX.set(e.clientX)}
-          onMouseLeave={() => mouseX.set(Infinity)}
-          className="relative flex items-end gap-2 bg-ink/95 backdrop-blur-xl border border-white/10 px-3 py-2 rounded-full shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]"
-        >
-          {/* shimmer line */}
-          <motion.span
-            aria-hidden
-            className="absolute top-0 left-0 h-px w-1/3 bg-gradient-to-r from-transparent via-yellow-accent to-transparent"
-            animate={{ x: ["-50%", "350%"] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          />
-          <div className="flex items-center gap-1 pr-3 mr-1 border-r border-white/10 h-10">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-paper text-[10px] uppercase tracking-[0.2em] font-medium">{time || "live"}</span>
-          </div>
-          {NAV.map((n) => (
-            <DockItem key={n.l} item={n} mouseX={mouseX} active={active === n.id} onHover={setLabel} />
-          ))}
-          <div className="flex items-center gap-1 pl-3 ml-1 border-l border-white/10 h-10">
-            <kbd className="text-paper/70 text-[10px] uppercase tracking-[0.2em] px-2 py-1 rounded-md border border-white/15">⌘ K</kbd>
-          </div>
-        </motion.nav>
-      </Magnetic>
+      <motion.nav
+        onMouseMove={(e) => mouseX.set(e.clientX)}
+        onMouseLeave={() => mouseX.set(Infinity)}
+        className="relative flex items-end gap-2 bg-ink/95 backdrop-blur-md border border-white/10 px-3 py-2 rounded-full shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]"
+      >
+        {/* shimmer line */}
+        <motion.span
+          aria-hidden
+          className="absolute top-0 left-0 h-px w-1/3 bg-gradient-to-r from-transparent via-yellow-accent to-transparent"
+          animate={{ x: ["-50%", "350%"] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+        />
+        <div className="flex items-center gap-1 pr-3 mr-1 border-r border-white/10 h-10">
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <span className="text-paper text-[10px] uppercase tracking-[0.2em] font-medium">{time || "live"}</span>
+        </div>
+        {NAV.map((n) => (
+          <DockItem key={n.l} item={n} mouseX={mouseX} active={active === n.id} onHover={setLabel} />
+        ))}
+        <div className="flex items-center gap-1 pl-3 ml-1 border-l border-white/10 h-10">
+          <kbd className="text-paper/70 text-[10px] uppercase tracking-[0.2em] px-2 py-1 rounded-md border border-white/15">⌘ K</kbd>
+        </div>
+      </motion.nav>
+
     </motion.div>
   );
 }
