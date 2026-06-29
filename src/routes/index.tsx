@@ -1209,7 +1209,138 @@ function ShatterIn({ text, className = "" }: { text: string; className?: string 
   );
 }
 
-function Index() {
+// ---------- Aesthetic Loading Screen ----------
+function LoadingScreen({ onDone }: { onDone: () => void }) {
+  const [count, setCount] = useState(0);
+  const [gone, setGone] = useState(false);
+  useEffect(() => {
+    let raf = 0;
+    const start = performance.now();
+    const dur = 1800;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / dur);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - p, 3);
+      setCount(Math.round(eased * 100));
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else setTimeout(() => setGone(true), 350);
+    };
+    raf = requestAnimationFrame(tick);
+    document.body.style.overflow = "hidden";
+    return () => { cancelAnimationFrame(raf); document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <AnimatePresence onExitComplete={() => { document.body.style.overflow = ""; onDone(); }}>
+      {!gone && (
+        <motion.div
+          key="loader"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: [0.65, 0, 0.35, 1] }}
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-ink text-paper overflow-hidden"
+        >
+          {/* slow drifting grain/blobs */}
+          <motion.div
+            aria-hidden
+            initial={{ scale: 0.6, opacity: 0.3 }}
+            animate={{ scale: [0.6, 1.1, 0.8], opacity: [0.3, 0.55, 0.4] }}
+            transition={{ duration: 2.2, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" }}
+            className="absolute -top-40 -left-40 w-[60vw] h-[60vw] rounded-full blur-3xl"
+            style={{ background: "radial-gradient(circle, var(--orange-accent), transparent 60%)" }}
+          />
+          <motion.div
+            aria-hidden
+            initial={{ scale: 0.7, opacity: 0.25 }}
+            animate={{ scale: [0.7, 1.2, 0.9], opacity: [0.25, 0.45, 0.3] }}
+            transition={{ duration: 2.6, ease: "easeInOut", repeat: Infinity, repeatType: "reverse", delay: 0.3 }}
+            className="absolute -bottom-40 -right-40 w-[60vw] h-[60vw] rounded-full blur-3xl"
+            style={{ background: "radial-gradient(circle, var(--blue-accent), transparent 60%)" }}
+          />
+
+          {/* center content */}
+          <div className="relative z-10 flex flex-col items-center gap-10 px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="flex items-center gap-2 text-xs uppercase tracking-[0.32em] text-paper/70"
+            >
+              <span className="w-2 h-2 rounded-full bg-yellow-accent animate-pulse" />
+              Loading the folio
+            </motion.div>
+
+            <div className="overflow-hidden">
+              <motion.div
+                initial={{ y: "110%" }}
+                animate={{ y: 0 }}
+                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+                className="font-display font-bold leading-[0.85] tracking-[-0.05em] text-[18vw] md:text-[10vw] text-center"
+              >
+                TANMAY<span className="text-orange-accent">.</span>
+              </motion.div>
+            </div>
+
+            <div className="flex items-end gap-4 w-[min(560px,80vw)]">
+              <div className="flex-1">
+                <div className="h-[2px] w-full bg-paper/15 overflow-hidden rounded-full">
+                  <motion.div
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: count / 100 }}
+                    transition={{ ease: "easeOut", duration: 0.15 }}
+                    style={{ transformOrigin: "left" }}
+                    className="h-full bg-paper"
+                  />
+                </div>
+                <div className="flex justify-between mt-3 text-[10px] uppercase tracking-[0.3em] text-paper/50">
+                  <span>2026 — folio v.4</span>
+                  <span>India ⇄ everywhere</span>
+                </div>
+              </div>
+              <div className="font-display font-bold text-4xl md:text-5xl tabular-nums w-[3.2ch] text-right">
+                {String(count).padStart(2, "0")}
+              </div>
+            </div>
+          </div>
+
+          {/* curtain slide */}
+          <motion.div
+            aria-hidden
+            initial={{ y: "100%" }}
+            animate={{ y: gone ? "0%" : "100%" }}
+            className="absolute inset-0 bg-paper"
+            transition={{ duration: 0.7, ease: [0.76, 0, 0.24, 1] }}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ---------- Lenis smooth scroll (buttery global momentum) ----------
+function useLenisSmoothScroll() {
+  useEffect(() => {
+    let lenis: import("lenis").default | undefined;
+    let raf = 0;
+    let cancelled = false;
+    (async () => {
+      const Lenis = (await import("lenis")).default;
+      if (cancelled) return;
+      lenis = new Lenis({
+        duration: 1.15,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        touchMultiplier: 1.4,
+      });
+      const loop = (time: number) => { lenis?.raf(time); raf = requestAnimationFrame(loop); };
+      raf = requestAnimationFrame(loop);
+    })();
+    return () => { cancelled = true; cancelAnimationFrame(raf); lenis?.destroy(); };
+  }, []);
+}
+
+
   const [time, setTime] = useState("");
   const [burst, setBurst] = useState(0);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
