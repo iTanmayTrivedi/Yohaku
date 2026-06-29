@@ -1340,10 +1340,14 @@ function useLenisSmoothScroll() {
   }, []);
 }
 
+function Index() {
+  const [loading, setLoading] = useState(true);
+  useLenisSmoothScroll();
 
   const [time, setTime] = useState("");
   const [burst, setBurst] = useState(0);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const heroRef = useRef<HTMLElement>(null);
