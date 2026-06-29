@@ -916,19 +916,17 @@ function useActiveSection(ids: string[]) {
   return active;
 }
 
-function DockItem({ item, mouseX, active, onHover }: { item: typeof NAV[0]; mouseX: MotionValue<number>; active: boolean; onHover: (l: string | null) => void }) {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const distance = useTransform(mouseX, (val) => {
-    const r = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
-    return val - r.x - r.width / 2;
-  });
-  // Direct transforms — no spring — for instant, lag-free magnification (the macOS feel)
-  const scale = useTransform(distance, [-140, 0, 140], [1, 1.6, 1]);
-  const lift = useTransform(distance, [-140, 0, 140], [0, -10, 0]);
+function DockItem({ item, mouseX, center, active, onHover }: { item: typeof NAV[0]; mouseX: MotionValue<number>; center: MotionValue<number>; active: boolean; onHover: (l: string | null) => void }) {
+  // Distance is derived from cached center MV (no getBoundingClientRect per frame).
+  const distance = useTransform([mouseX, center] as const, ([m, c]: number[]) => m - c);
+  const scaleT = useTransform(distance, [-150, 0, 150], [1, 1.55, 1]);
+  const liftT = useTransform(distance, [-150, 0, 150], [0, -12, 0]);
+  // Light, fast spring for silky-smooth magnification.
+  const scale = useSpring(scaleT, { stiffness: 700, damping: 38, mass: 0.25 });
+  const lift = useSpring(liftT, { stiffness: 700, damping: 38, mass: 0.25 });
 
   return (
     <motion.a
-      ref={ref}
       href={item.h}
       data-cursor={item.l.toLowerCase()}
       onMouseEnter={() => onHover(item.l)}
@@ -957,6 +955,40 @@ function Dock({ time }: { time: string }) {
   const mouseX = useMotionValue(Infinity);
   const [label, setLabel] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const itemRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  // One MotionValue per item holding its cached x-center.
+  const centersRef = useRef<MotionValue<number>[]>(NAV.map(() => null as unknown as MotionValue<number>));
+  // Initialize once
+  if (centersRef.current[0] == null) {
+    centersRef.current = NAV.map(() => new (require ? Object : Object)() as MotionValue<number>);
+  }
+  // Properly initialize MotionValues
+  const centers = useRef<MotionValue<number>[]>([]);
+  if (centers.current.length === 0) {
+    centers.current = NAV.map(() => new MotionValueCtor(0));
+  }
+
+  // Measure centers on mount, resize, and scroll.
+  useEffect(() => {
+    const measure = () => {
+      itemRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        centers.current[i]?.set(r.x + r.width / 2);
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, { passive: true });
+    const ro = new ResizeObserver(measure);
+    if (navRef.current) ro.observe(navRef.current);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure);
+      ro.disconnect();
+    };
+  }, [open]);
 
   // reveal on scroll past hero
   useEffect(() => {
@@ -973,7 +1005,6 @@ function Dock({ time }: { time: string }) {
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2"
     >
-      {/* hovered label bubble */}
       <AnimatePresence>
         {label && (
           <motion.div
@@ -990,11 +1021,11 @@ function Dock({ time }: { time: string }) {
       </AnimatePresence>
 
       <motion.nav
+        ref={navRef}
         onMouseMove={(e) => mouseX.set(e.clientX)}
         onMouseLeave={() => mouseX.set(Infinity)}
         className="relative flex items-end gap-2 bg-ink/95 backdrop-blur-md border border-white/10 px-3 py-2 rounded-full shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]"
       >
-        {/* shimmer line */}
         <motion.span
           aria-hidden
           className="absolute top-0 left-0 h-px w-1/3 bg-gradient-to-r from-transparent via-yellow-accent to-transparent"
@@ -1005,8 +1036,10 @@ function Dock({ time }: { time: string }) {
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           <span className="text-paper text-[10px] uppercase tracking-[0.2em] font-medium">{time || "live"}</span>
         </div>
-        {NAV.map((n) => (
-          <DockItem key={n.l} item={n} mouseX={mouseX} active={active === n.id} onHover={setLabel} />
+        {NAV.map((n, i) => (
+          <span key={n.l} ref={(el) => { itemRefs.current[i] = el; }} className="inline-block">
+            <DockItem item={n} mouseX={mouseX} center={centers.current[i]} active={active === n.id} onHover={setLabel} />
+          </span>
         ))}
         <div className="flex items-center gap-1 pl-3 ml-1 border-l border-white/10 h-10">
           <kbd className="text-paper/70 text-[10px] uppercase tracking-[0.2em] px-2 py-1 rounded-md border border-white/15">⌘ K</kbd>
@@ -1016,6 +1049,7 @@ function Dock({ time }: { time: string }) {
     </motion.div>
   );
 }
+
 
 function ScrollToTop({ progress }: { progress: MotionValue<number> }) {
   const [show, setShow] = useState(false);
