@@ -1037,7 +1037,7 @@ function Dock({ time }: { time: string }) {
         </div>
         {NAV.map((n, i) => (
           <span key={n.l} ref={(el) => { itemRefs.current[i] = el; }} className="inline-block">
-            <DockItem item={n} mouseX={mouseX} center={centers.current[i]} active={active === n.id} onHover={setLabel} />
+            <DockItem item={n} mouseX={mouseX} center={centers[i]} active={active === n.id} onHover={setLabel} />
           </span>
         ))}
         <div className="flex items-center gap-1 pl-3 ml-1 border-l border-white/10 h-10">
