@@ -1306,7 +1306,7 @@ function Index() {
     <main className="grid-paper min-h-screen relative overflow-x-clip">
       {loading && <LoadingScreen onDone={() => setLoading(false)} />}
       <CustomCursor />
-      <ParticleTrail />
+      <CustomCursor />
       <SpotlightOverlay />
       <GrainOverlay />
       <RippleClick />
