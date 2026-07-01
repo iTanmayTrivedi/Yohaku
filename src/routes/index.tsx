@@ -936,20 +936,8 @@ function Dock({ time }: { time: string }) {
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2"
     >
-      <AnimatePresence>
-        {label && (
-          <motion.div
-            key={label}
-            initial={{ opacity: 0, y: 8, scale: 0.85 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.85 }}
-            transition={{ duration: 0.18 }}
-            className="px-3 py-1 rounded-full bg-ink text-paper text-xs uppercase tracking-[0.18em] shadow-lg"
-          >
-            {label}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* label tooltip removed per user request */}
+
 
       <motion.nav
         ref={navRef}
