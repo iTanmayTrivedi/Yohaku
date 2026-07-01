@@ -850,11 +850,12 @@ function useActiveSection(ids: string[]) {
 function DockItem({ item, mouseX, center, active, onHover }: { item: typeof NAV[0]; mouseX: MotionValue<number>; center: MotionValue<number>; active: boolean; onHover: (l: string | null) => void }) {
   // Distance is derived from cached center MV (no getBoundingClientRect per frame).
   const distance = useTransform([mouseX, center] as const, ([m, c]: number[]) => m - c);
-  const scaleT = useTransform(distance, [-150, 0, 150], [1, 1.55, 1]);
-  const liftT = useTransform(distance, [-150, 0, 150], [0, -12, 0]);
+  const scaleT = useTransform(distance, [-160, 0, 160], [1, 1.75, 1]);
+  const liftT = useTransform(distance, [-160, 0, 160], [0, -16, 0]);
   // Light, fast spring for silky-smooth magnification.
   const scale = useSpring(scaleT, { stiffness: 700, damping: 38, mass: 0.25 });
   const lift = useSpring(liftT, { stiffness: 700, damping: 38, mass: 0.25 });
+
 
   return (
     <motion.a
@@ -935,20 +936,8 @@ function Dock({ time }: { time: string }) {
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2"
     >
-      <AnimatePresence>
-        {label && (
-          <motion.div
-            key={label}
-            initial={{ opacity: 0, y: 8, scale: 0.85 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.85 }}
-            transition={{ duration: 0.18 }}
-            className="px-3 py-1 rounded-full bg-ink text-paper text-xs uppercase tracking-[0.18em] shadow-lg"
-          >
-            {label}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* label tooltip removed per user request */}
+
 
       <motion.nav
         ref={navRef}
