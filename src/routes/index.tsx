@@ -602,77 +602,8 @@ function CaseStudyModal({ project, onClose }: { project: Project | null; onClose
 
 
 
-function ParticleTrail() {
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; dx: number; dy: number; size: number; color: string; hot: boolean }>>([]);
-  const idRef = useRef(0);
-  const lastRef = useRef({ x: 0, y: 0, t: 0 });
+// ParticleTrail removed — was causing dock lag on mousemove.
 
-  useEffect(() => {
-    const colors = ["var(--orange-accent)", "var(--blue-accent)", "var(--yellow-accent)"];
-    const onMove = (e: MouseEvent) => {
-      const now = performance.now();
-      const dx = e.clientX - lastRef.current.x;
-      const dy = e.clientY - lastRef.current.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist < 8 || now - lastRef.current.t < 16) return;
-      lastRef.current = { x: e.clientX, y: e.clientY, t: now };
-
-      const t = e.target as HTMLElement;
-      const hot = !!t.closest("[data-cursor],a,button");
-      const count = hot ? 4 : 1;
-
-      setParticles((prev) => {
-        const next = [...prev];
-        for (let i = 0; i < count; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const speed = hot ? 30 + Math.random() * 60 : 10 + Math.random() * 20;
-          next.push({
-            id: idRef.current++,
-            x: e.clientX,
-            y: e.clientY,
-            dx: Math.cos(angle) * speed,
-            dy: Math.sin(angle) * speed - (hot ? 20 : 6),
-            size: hot ? 6 + Math.random() * 8 : 4 + Math.random() * 4,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            hot,
-          });
-        }
-        return next.slice(-80);
-      });
-    };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
-
-  return (
-    <div className="pointer-events-none fixed inset-0 z-[90] hidden md:block">
-      <AnimatePresence>
-        {particles.map((p) => (
-          <motion.span
-            key={p.id}
-            initial={{ x: p.x, y: p.y, opacity: 0.9, scale: 1 }}
-            animate={{ x: p.x + p.dx, y: p.y + p.dy, opacity: 0, scale: 0.3, rotate: p.hot ? 180 : 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: p.hot ? 1.1 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-            onAnimationComplete={() => setParticles((prev) => prev.filter((q) => q.id !== p.id))}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: p.size,
-              height: p.size,
-              marginLeft: -p.size / 2,
-              marginTop: -p.size / 2,
-              borderRadius: p.hot ? 2 : 999,
-              backgroundColor: p.color,
-              boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-            }}
-          />
-        ))}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 function CustomCursor() {
 
@@ -1216,14 +1147,13 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     let raf = 0;
     const start = performance.now();
-    const dur = 1800;
+    const dur = 1700;
     const tick = (t: number) => {
       const p = Math.min(1, (t - start) / dur);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - p, 3);
       setCount(Math.round(eased * 100));
       if (p < 1) raf = requestAnimationFrame(tick);
-      else setTimeout(() => setGone(true), 350);
+      else setTimeout(() => setGone(true), 380);
     };
     raf = requestAnimationFrame(tick);
     document.body.style.overflow = "hidden";
@@ -1237,64 +1167,90 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           key="loader"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5, ease: [0.65, 0, 0.35, 1] }}
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-ink text-paper overflow-hidden"
+          transition={{ duration: 0.4, ease: [0.65, 0, 0.35, 1] }}
+          className="grid-paper fixed inset-0 z-[200] flex items-center justify-center bg-paper text-ink overflow-hidden"
         >
-          {/* slow drifting grain/blobs */}
+          {/* corner marks — architectural */}
+          <div className="absolute top-6 left-6 text-[10px] uppercase tracking-[0.32em] text-ink/50 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-accent animate-pulse" />
+            折 · loading
+          </div>
+          <div className="absolute top-6 right-6 text-[10px] uppercase tracking-[0.32em] text-ink/50 tabular-nums">
+            folio — mmxxvi
+          </div>
+          <div className="absolute bottom-6 left-6 text-[10px] uppercase tracking-[0.32em] text-ink/50">
+            india ⇄ everywhere
+          </div>
+          <div className="absolute bottom-6 right-6 text-[10px] uppercase tracking-[0.32em] text-ink/50">
+            v.4 · quiet edition
+          </div>
+
+          {/* vertical japanese label — right rail */}
+          <div className="hidden md:flex absolute right-16 top-1/2 -translate-y-1/2 flex-col items-center gap-3 text-ink/40" style={{ writingMode: "vertical-rl" }}>
+            <span className="text-[10px] uppercase tracking-[0.5em]">tanmay — portfolio</span>
+            <span className="text-xs tracking-[0.4em]">タンマイ・ポートフォリオ</span>
+          </div>
+
+          {/* red seal (hanko) */}
           <motion.div
-            aria-hidden
-            initial={{ scale: 0.6, opacity: 0.3 }}
-            animate={{ scale: [0.6, 1.1, 0.8], opacity: [0.3, 0.55, 0.4] }}
-            transition={{ duration: 2.2, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" }}
-            className="absolute -top-40 -left-40 w-[60vw] h-[60vw] rounded-full blur-3xl"
-            style={{ background: "radial-gradient(circle, var(--orange-accent), transparent 60%)" }}
-          />
-          <motion.div
-            aria-hidden
-            initial={{ scale: 0.7, opacity: 0.25 }}
-            animate={{ scale: [0.7, 1.2, 0.9], opacity: [0.25, 0.45, 0.3] }}
-            transition={{ duration: 2.6, ease: "easeInOut", repeat: Infinity, repeatType: "reverse", delay: 0.3 }}
-            className="absolute -bottom-40 -right-40 w-[60vw] h-[60vw] rounded-full blur-3xl"
-            style={{ background: "radial-gradient(circle, var(--blue-accent), transparent 60%)" }}
-          />
+            initial={{ scale: 0, rotate: -20, opacity: 0 }}
+            animate={{ scale: 1, rotate: -8, opacity: 1 }}
+            transition={{ delay: 0.6, type: "spring", stiffness: 180, damping: 14 }}
+            className="hidden md:flex absolute left-16 top-1/2 -translate-y-1/2 w-20 h-20 items-center justify-center rounded-md border-[3px]"
+            style={{ borderColor: "var(--orange-accent)", color: "var(--orange-accent)" }}
+          >
+            <span className="font-display font-bold text-2xl leading-none tracking-tighter">
+              印
+            </span>
+          </motion.div>
 
           {/* center content */}
-          <div className="relative z-10 flex flex-col items-center gap-10 px-6">
+          <div className="relative z-10 flex flex-col items-center gap-8 px-6">
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="flex items-center gap-2 text-xs uppercase tracking-[0.32em] text-paper/70"
+              className="flex items-center gap-3 text-[10px] uppercase tracking-[0.42em] text-ink/60"
             >
-              <span className="w-2 h-2 rounded-full bg-yellow-accent animate-pulse" />
-              Loading the folio
+              <span className="w-6 h-px bg-ink/40" />
+              a quiet folio in progress
+              <span className="w-6 h-px bg-ink/40" />
             </motion.div>
 
             <div className="overflow-hidden">
               <motion.div
                 initial={{ y: "110%" }}
                 animate={{ y: 0 }}
-                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-                className="font-display font-bold leading-[0.85] tracking-[-0.05em] text-[18vw] md:text-[10vw] text-center"
+                transition={{ duration: 0.95, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+                className="font-display font-bold leading-[0.85] tracking-[-0.05em] text-[16vw] md:text-[9vw] text-center"
               >
                 TANMAY<span className="text-orange-accent">.</span>
               </motion.div>
             </div>
 
-            <div className="flex items-end gap-4 w-[min(560px,80vw)]">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+              className="font-hand text-2xl text-ink/60"
+            >
+              — designer · engineer · storyteller
+            </motion.div>
+
+            <div className="flex items-end gap-6 w-[min(560px,84vw)] mt-4">
               <div className="flex-1">
-                <div className="h-[2px] w-full bg-paper/15 overflow-hidden rounded-full">
+                <div className="h-[2px] w-full bg-ink/15 overflow-hidden">
                   <motion.div
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: count / 100 }}
                     transition={{ ease: "easeOut", duration: 0.15 }}
                     style={{ transformOrigin: "left" }}
-                    className="h-full bg-paper"
+                    className="h-full bg-ink"
                   />
                 </div>
-                <div className="flex justify-between mt-3 text-[10px] uppercase tracking-[0.3em] text-paper/50">
-                  <span>2026 — folio v.4</span>
-                  <span>India ⇄ everywhere</span>
+                <div className="flex justify-between mt-3 text-[10px] uppercase tracking-[0.3em] text-ink/50">
+                  <span>preparing archive</span>
+                  <span>0{Math.floor(count / 25) + 1} / 04</span>
                 </div>
               </div>
               <div className="font-display font-bold text-4xl md:text-5xl tabular-nums w-[3.2ch] text-right">
@@ -1303,19 +1259,21 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
             </div>
           </div>
 
-          {/* curtain slide */}
+          {/* paper curtain slide up (reveals site) */}
           <motion.div
             aria-hidden
             initial={{ y: "100%" }}
             animate={{ y: gone ? "0%" : "100%" }}
             className="absolute inset-0 bg-paper"
-            transition={{ duration: 0.7, ease: [0.76, 0, 0.24, 1] }}
+            transition={{ duration: 0.75, ease: [0.76, 0, 0.24, 1] }}
           />
         </motion.div>
       )}
     </AnimatePresence>
   );
 }
+
+
 
 // ---------- Lenis smooth scroll (buttery global momentum) ----------
 function useLenisSmoothScroll() {
@@ -1375,7 +1333,7 @@ function Index() {
     <main className="grid-paper min-h-screen relative overflow-x-clip">
       {loading && <LoadingScreen onDone={() => setLoading(false)} />}
       <CustomCursor />
-      <ParticleTrail />
+
       <SpotlightOverlay />
       <GrainOverlay />
       <RippleClick />
