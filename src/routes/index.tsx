@@ -848,14 +848,12 @@ function useActiveSection(ids: string[]) {
 }
 
 function DockItem({ item, mouseX, center, active, onHover }: { item: typeof NAV[0]; mouseX: MotionValue<number>; center: MotionValue<number>; active: boolean; onHover: (l: string | null) => void }) {
-  // Distance is derived from cached center MV (no getBoundingClientRect per frame).
   const distance = useTransform([mouseX, center] as const, ([m, c]: number[]) => m - c);
-  const scaleT = useTransform(distance, [-160, 0, 160], [1, 1.75, 1]);
-  const liftT = useTransform(distance, [-160, 0, 160], [0, -16, 0]);
-  // Light, fast spring for silky-smooth magnification.
-  const scale = useSpring(scaleT, { stiffness: 700, damping: 38, mass: 0.25 });
-  const lift = useSpring(liftT, { stiffness: 700, damping: 38, mass: 0.25 });
-
+  // Wider influence radius + neighbor rise = classic macOS "water" stretch.
+  const scaleT = useTransform(distance, [-220, -110, 0, 110, 220], [1, 1.28, 1.9, 1.28, 1]);
+  const liftT = useTransform(distance, [-220, -110, 0, 110, 220], [0, -6, -20, -6, 0]);
+  const scale = useSpring(scaleT, { stiffness: 800, damping: 40, mass: 0.2 });
+  const lift = useSpring(liftT, { stiffness: 800, damping: 40, mass: 0.2 });
 
   return (
     <motion.a
