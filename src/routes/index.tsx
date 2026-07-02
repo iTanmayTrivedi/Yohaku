@@ -909,12 +909,10 @@ function Dock({ time }: { time: string }) {
     };
     measure();
     window.addEventListener("resize", measure);
-    window.addEventListener("scroll", measure, { passive: true });
     const ro = new ResizeObserver(measure);
     if (navRef.current) ro.observe(navRef.current);
     return () => {
       window.removeEventListener("resize", measure);
-      window.removeEventListener("scroll", measure);
       ro.disconnect();
     };
   }, [open]);
