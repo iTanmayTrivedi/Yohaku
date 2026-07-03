@@ -1016,15 +1016,13 @@ function ScrollToTop({ progress }: { progress: MotionValue<number> }) {
    CRAZY EFFECTS — additive, non-breaking
    ============================================================ */
 
-// Animated SVG grain — film noise overlay
+// Static SVG grain — animating feTurbulence forces full-viewport raster every frame.
 function GrainOverlay() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-[55] opacity-[0.06] mix-blend-multiply">
       <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
         <filter id="lov-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch">
-            <animate attributeName="baseFrequency" dur="8s" values="0.9;1.1;0.9" repeatCount="indefinite" />
-          </feTurbulence>
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
           <feColorMatrix type="saturate" values="0" />
         </filter>
         <rect width="100%" height="100%" filter="url(#lov-grain)" />
