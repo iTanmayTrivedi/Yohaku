@@ -606,7 +606,6 @@ function CaseStudyModal({ project, onClose }: { project: Project | null; onClose
 
 
 function CustomCursor() {
-
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
   const sx = useSpring(x, { stiffness: 500, damping: 40 });
@@ -614,18 +613,31 @@ function CustomCursor() {
   const [label, setLabel] = useState<string | null>(null);
 
   useEffect(() => {
-    const move = (e: MouseEvent) => {
-      x.set(e.clientX); y.set(e.clientY);
-      const t = e.target as HTMLElement;
-      const l = t.closest("[data-cursor]")?.getAttribute("data-cursor");
-      setLabel(l ?? null);
+    let px = -100, py = -100, raf = 0, dirty = false;
+    let lastLabelCheck = 0;
+    let lastLabel: string | null = null;
+    const flush = () => {
+      raf = 0;
+      if (dirty) { x.set(px); y.set(py); dirty = false; }
     };
-    window.addEventListener("mousemove", move);
-    return () => window.removeEventListener("mousemove", move);
+    const move = (e: MouseEvent) => {
+      px = e.clientX; py = e.clientY; dirty = true;
+      if (!raf) raf = requestAnimationFrame(flush);
+      // throttle DOM lookup to ~60ms
+      const now = e.timeStamp;
+      if (now - lastLabelCheck > 60) {
+        lastLabelCheck = now;
+        const t = e.target as HTMLElement;
+        const l = t.closest("[data-cursor]")?.getAttribute("data-cursor") ?? null;
+        if (l !== lastLabel) { lastLabel = l; setLabel(l); }
+      }
+    };
+    window.addEventListener("mousemove", move, { passive: true });
+    return () => { window.removeEventListener("mousemove", move); if (raf) cancelAnimationFrame(raf); };
   }, [x, y]);
 
   return (
-    <motion.div style={{ x: sx, y: sy }} className="pointer-events-none fixed top-0 left-0 z-[100] hidden md:block">
+    <motion.div style={{ x: sx, y: sy, willChange: "transform" }} className="pointer-events-none fixed top-0 left-0 z-[100] hidden md:block">
       <motion.div
         animate={{ scale: label ? 5 : 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
