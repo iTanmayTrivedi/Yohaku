@@ -1148,18 +1148,21 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     let raf = 0;
     const start = performance.now();
-    const dur = 1700;
+    const dur = 2100;
     const tick = (t: number) => {
       const p = Math.min(1, (t - start) / dur);
       const eased = 1 - Math.pow(1 - p, 3);
       setCount(Math.round(eased * 100));
       if (p < 1) raf = requestAnimationFrame(tick);
-      else setTimeout(() => setGone(true), 380);
+      else setTimeout(() => setGone(true), 420);
     };
     raf = requestAnimationFrame(tick);
     document.body.style.overflow = "hidden";
     return () => { cancelAnimationFrame(raf); document.body.style.overflow = ""; };
   }, []);
+
+  const stages = ["setting the type", "warming the ink", "folding paper", "opening the folio"];
+  const stageIdx = Math.min(3, Math.floor(count / 25.01));
 
   return (
     <AnimatePresence onExitComplete={() => { document.body.style.overflow = ""; onDone(); }}>
@@ -1168,10 +1171,27 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           key="loader"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4, ease: [0.65, 0, 0.35, 1] }}
-          className="grid-paper fixed inset-0 z-[200] flex items-center justify-center bg-paper text-ink overflow-hidden"
+          transition={{ duration: 0.35 }}
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-paper text-ink overflow-hidden"
+          style={{
+            backgroundImage:
+              "radial-gradient(color-mix(in oklab, var(--ink) 6%, transparent) 1px, transparent 1px)",
+            backgroundSize: "22px 22px",
+          }}
         >
-          {/* corner marks — architectural */}
+          {/* soft breathing glow — pure CSS, no rAF */}
+          <div
+            aria-hidden
+            className="absolute -top-40 -left-40 w-[560px] h-[560px] rounded-full opacity-30 blur-3xl animate-pulse"
+            style={{ background: "radial-gradient(circle, var(--orange-accent), transparent 60%)", animationDuration: "6s" }}
+          />
+          <div
+            aria-hidden
+            className="absolute -bottom-40 -right-40 w-[520px] h-[520px] rounded-full opacity-25 blur-3xl animate-pulse"
+            style={{ background: "radial-gradient(circle, var(--blue-accent), transparent 60%)", animationDuration: "7s" }}
+          />
+
+          {/* corner marks */}
           <div className="absolute top-6 left-6 text-[10px] uppercase tracking-[0.32em] text-ink/50 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-accent animate-pulse" />
             折 · loading
@@ -1186,24 +1206,54 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
             v.4 · quiet edition
           </div>
 
+          {/* corner brackets — architectural crop marks */}
+          {[
+            "top-16 left-16 border-t-2 border-l-2",
+            "top-16 right-16 border-t-2 border-r-2",
+            "bottom-16 left-16 border-b-2 border-l-2",
+            "bottom-16 right-16 border-b-2 border-r-2",
+          ].map((c, i) => (
+            <motion.span
+              key={c}
+              aria-hidden
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 + i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className={`hidden md:block absolute w-8 h-8 border-ink/60 ${c}`}
+            />
+          ))}
+
           {/* vertical japanese label — right rail */}
           <div className="hidden md:flex absolute right-16 top-1/2 -translate-y-1/2 flex-col items-center gap-3 text-ink/40" style={{ writingMode: "vertical-rl" }}>
             <span className="text-[10px] uppercase tracking-[0.5em]">tanmay — portfolio</span>
             <span className="text-xs tracking-[0.4em]">タンマイ・ポートフォリオ</span>
           </div>
 
-          {/* red seal (hanko) */}
-          <motion.div
-            initial={{ scale: 0, rotate: -20, opacity: 0 }}
-            animate={{ scale: 1, rotate: -8, opacity: 1 }}
-            transition={{ delay: 0.6, type: "spring", stiffness: 180, damping: 14 }}
-            className="hidden md:flex absolute left-16 top-1/2 -translate-y-1/2 w-20 h-20 items-center justify-center rounded-md border-[3px]"
-            style={{ borderColor: "var(--orange-accent)", color: "var(--orange-accent)" }}
-          >
-            <span className="font-display font-bold text-2xl leading-none tracking-tighter">
-              印
-            </span>
-          </motion.div>
+          {/* red seal (hanko) — with rotating outer ring */}
+          <div className="hidden md:block absolute left-16 top-1/2 -translate-y-1/2">
+            <motion.svg
+              viewBox="0 0 100 100"
+              className="absolute -inset-4 w-[7rem] h-[7rem]"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 22, ease: "linear", repeat: Infinity }}
+            >
+              <defs>
+                <path id="seal-ring" d="M 50 50 m -42 0 a 42 42 0 1 1 84 0 a 42 42 0 1 1 -84 0" />
+              </defs>
+              <text fill="var(--orange-accent)" fontSize="7" letterSpacing="3" className="uppercase font-semibold">
+                <textPath href="#seal-ring">● craft ● design ● motion ● story ● craft ● design ●</textPath>
+              </text>
+            </motion.svg>
+            <motion.div
+              initial={{ scale: 0, rotate: -20, opacity: 0 }}
+              animate={{ scale: 1, rotate: -8, opacity: 1 }}
+              transition={{ delay: 0.55, type: "spring", stiffness: 200, damping: 14 }}
+              className="relative w-20 h-20 flex items-center justify-center rounded-md border-[3px]"
+              style={{ borderColor: "var(--orange-accent)", color: "var(--orange-accent)" }}
+            >
+              <span className="font-display font-bold text-2xl leading-none tracking-tighter">印</span>
+            </motion.div>
+          </div>
 
           {/* center content */}
           <div className="relative z-10 flex flex-col items-center gap-8 px-6">
@@ -1218,40 +1268,79 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
               <span className="w-6 h-px bg-ink/40" />
             </motion.div>
 
-            <div className="overflow-hidden">
-              <motion.div
-                initial={{ y: "110%" }}
-                animate={{ y: 0 }}
-                transition={{ duration: 0.95, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-                className="font-display font-bold leading-[0.85] tracking-[-0.05em] text-[16vw] md:text-[9vw] text-center"
-              >
-                TANMAY<span className="text-orange-accent">.</span>
-              </motion.div>
+            {/* wordmark with per-letter reveal + accent underline draw */}
+            <div className="relative">
+              <div className="overflow-hidden">
+                <div className="font-display font-bold leading-[0.85] tracking-[-0.05em] text-[16vw] md:text-[9vw] text-center flex">
+                  {"TANMAY".split("").map((ch, i) => (
+                    <motion.span
+                      key={i}
+                      initial={{ y: "110%" }}
+                      animate={{ y: 0 }}
+                      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.15 + i * 0.05 }}
+                      className="inline-block"
+                    >
+                      {ch}
+                    </motion.span>
+                  ))}
+                  <motion.span
+                    initial={{ y: "110%" }}
+                    animate={{ y: 0 }}
+                    transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
+                    className="inline-block text-orange-accent"
+                  >.</motion.span>
+                </div>
+              </div>
+              <svg viewBox="0 0 400 20" preserveAspectRatio="none" className="absolute -bottom-2 left-0 w-full h-3 text-orange-accent">
+                <motion.path
+                  d="M2 12 C 100 2, 200 18, 398 8"
+                  stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.2, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </svg>
             </div>
 
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
               className="font-hand text-2xl text-ink/60"
             >
               — designer · engineer · storyteller
             </motion.div>
 
-            <div className="flex items-end gap-6 w-[min(560px,84vw)] mt-4">
+            {/* rotating stage label */}
+            <div className="h-5 overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={stageIdx}
+                  initial={{ y: 18, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -18, opacity: 0 }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  className="text-[10px] uppercase tracking-[0.42em] text-ink/70"
+                >
+                  ↳ {stages[stageIdx]}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            <div className="flex items-end gap-6 w-[min(560px,84vw)] mt-2">
               <div className="flex-1">
-                <div className="h-[2px] w-full bg-ink/15 overflow-hidden">
+                <div className="relative h-[2px] w-full bg-ink/15 overflow-hidden">
                   <motion.div
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: count / 100 }}
                     transition={{ ease: "easeOut", duration: 0.15 }}
                     style={{ transformOrigin: "left" }}
-                    className="h-full bg-ink"
+                    className="absolute inset-0 h-full bg-ink"
                   />
                 </div>
-                <div className="flex justify-between mt-3 text-[10px] uppercase tracking-[0.3em] text-ink/50">
+                <div className="flex justify-between mt-3 text-[10px] uppercase tracking-[0.3em] text-ink/50 tabular-nums">
                   <span>preparing archive</span>
-                  <span>0{Math.floor(count / 25) + 1} / 04</span>
+                  <span>0{stageIdx + 1} / 04</span>
                 </div>
               </div>
               <div className="font-display font-bold text-4xl md:text-5xl tabular-nums w-[3.2ch] text-right">
@@ -1260,13 +1349,21 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
             </div>
           </div>
 
-          {/* paper curtain slide up (reveals site) */}
+          {/* paper curtain — split reveal (top + bottom shutter) */}
           <motion.div
             aria-hidden
-            initial={{ y: "100%" }}
-            animate={{ y: gone ? "0%" : "100%" }}
-            className="absolute inset-0 bg-paper"
-            transition={{ duration: 0.75, ease: [0.76, 0, 0.24, 1] }}
+            initial={{ y: 0 }}
+            animate={{ y: gone ? "-100%" : 0 }}
+            transition={{ duration: 0.85, ease: [0.76, 0, 0.24, 1] }}
+            className="absolute top-0 left-0 right-0 h-1/2 bg-paper border-b border-ink/10"
+          />
+          <motion.div
+            aria-hidden
+            initial={{ y: 0 }}
+            animate={{ y: gone ? "100%" : 0 }}
+            transition={{ duration: 0.85, ease: [0.76, 0, 0.24, 1] }}
+            className="absolute bottom-0 left-0 right-0 h-1/2 bg-paper"
+            style={{ top: "50%" }}
           />
         </motion.div>
       )}
