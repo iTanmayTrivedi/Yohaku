@@ -744,28 +744,34 @@ function Marquee({ items, dir = 1, accent }: { items: string[]; dir?: 1 | -1; ac
   );
 }
 
-// ---------- global mouse spotlight ----------
+// ---------- global mouse spotlight (GPU-only, no repaint) ----------
 function SpotlightOverlay() {
-  const mx = useMotionValue(-500);
-  const my = useMotionValue(-500);
-  const sx = useSpring(mx, { stiffness: 120, damping: 20, mass: 0.4 });
-  const sy = useSpring(my, { stiffness: 120, damping: 20, mass: 0.4 });
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const move = (e: MouseEvent) => { mx.set(e.clientX); my.set(e.clientY); };
-    window.addEventListener("mousemove", move);
-    return () => window.removeEventListener("mousemove", move);
-  }, [mx, my]);
-  const bg = useTransform(
-    [sx, sy] as MotionValue<number>[],
-    ([x, y]: number[]) =>
-      `radial-gradient(420px circle at ${x}px ${y}px, color-mix(in oklab, var(--orange-accent) 14%, transparent), transparent 70%)`
-  );
+    let px = -500, py = -500, cx = -500, cy = -500, raf = 0;
+    const loop = () => {
+      cx += (px - cx) * 0.18;
+      cy += (py - cy) * 0.18;
+      if (ref.current) ref.current.style.transform = `translate3d(${cx - 420}px, ${cy - 420}px, 0)`;
+      raf = requestAnimationFrame(loop);
+    };
+    const move = (e: MouseEvent) => { px = e.clientX; py = e.clientY; };
+    window.addEventListener("mousemove", move, { passive: true });
+    raf = requestAnimationFrame(loop);
+    return () => { window.removeEventListener("mousemove", move); cancelAnimationFrame(raf); };
+  }, []);
   return (
-    <motion.div
-      aria-hidden
-      style={{ background: bg as unknown as string }}
-      className="pointer-events-none fixed inset-0 z-[55] mix-blend-multiply"
-    />
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[55] mix-blend-multiply overflow-hidden">
+      <div
+        ref={ref}
+        style={{
+          width: 840,
+          height: 840,
+          willChange: "transform",
+          background: "radial-gradient(circle, color-mix(in oklab, var(--orange-accent) 14%, transparent), transparent 70%)",
+        }}
+      />
+    </div>
   );
 }
 
