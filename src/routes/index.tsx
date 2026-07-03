@@ -606,7 +606,6 @@ function CaseStudyModal({ project, onClose }: { project: Project | null; onClose
 
 
 function CustomCursor() {
-
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
   const sx = useSpring(x, { stiffness: 500, damping: 40 });
@@ -614,18 +613,31 @@ function CustomCursor() {
   const [label, setLabel] = useState<string | null>(null);
 
   useEffect(() => {
-    const move = (e: MouseEvent) => {
-      x.set(e.clientX); y.set(e.clientY);
-      const t = e.target as HTMLElement;
-      const l = t.closest("[data-cursor]")?.getAttribute("data-cursor");
-      setLabel(l ?? null);
+    let px = -100, py = -100, raf = 0, dirty = false;
+    let lastLabelCheck = 0;
+    let lastLabel: string | null = null;
+    const flush = () => {
+      raf = 0;
+      if (dirty) { x.set(px); y.set(py); dirty = false; }
     };
-    window.addEventListener("mousemove", move);
-    return () => window.removeEventListener("mousemove", move);
+    const move = (e: MouseEvent) => {
+      px = e.clientX; py = e.clientY; dirty = true;
+      if (!raf) raf = requestAnimationFrame(flush);
+      // throttle DOM lookup to ~60ms
+      const now = e.timeStamp;
+      if (now - lastLabelCheck > 60) {
+        lastLabelCheck = now;
+        const t = e.target as HTMLElement;
+        const l = t.closest("[data-cursor]")?.getAttribute("data-cursor") ?? null;
+        if (l !== lastLabel) { lastLabel = l; setLabel(l); }
+      }
+    };
+    window.addEventListener("mousemove", move, { passive: true });
+    return () => { window.removeEventListener("mousemove", move); if (raf) cancelAnimationFrame(raf); };
   }, [x, y]);
 
   return (
-    <motion.div style={{ x: sx, y: sy }} className="pointer-events-none fixed top-0 left-0 z-[100] hidden md:block">
+    <motion.div style={{ x: sx, y: sy, willChange: "transform" }} className="pointer-events-none fixed top-0 left-0 z-[100] hidden md:block">
       <motion.div
         animate={{ scale: label ? 5 : 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -732,28 +744,34 @@ function Marquee({ items, dir = 1, accent }: { items: string[]; dir?: 1 | -1; ac
   );
 }
 
-// ---------- global mouse spotlight ----------
+// ---------- global mouse spotlight (GPU-only, no repaint) ----------
 function SpotlightOverlay() {
-  const mx = useMotionValue(-500);
-  const my = useMotionValue(-500);
-  const sx = useSpring(mx, { stiffness: 120, damping: 20, mass: 0.4 });
-  const sy = useSpring(my, { stiffness: 120, damping: 20, mass: 0.4 });
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const move = (e: MouseEvent) => { mx.set(e.clientX); my.set(e.clientY); };
-    window.addEventListener("mousemove", move);
-    return () => window.removeEventListener("mousemove", move);
-  }, [mx, my]);
-  const bg = useTransform(
-    [sx, sy] as MotionValue<number>[],
-    ([x, y]: number[]) =>
-      `radial-gradient(420px circle at ${x}px ${y}px, color-mix(in oklab, var(--orange-accent) 14%, transparent), transparent 70%)`
-  );
+    let px = -500, py = -500, cx = -500, cy = -500, raf = 0;
+    const loop = () => {
+      cx += (px - cx) * 0.18;
+      cy += (py - cy) * 0.18;
+      if (ref.current) ref.current.style.transform = `translate3d(${cx - 420}px, ${cy - 420}px, 0)`;
+      raf = requestAnimationFrame(loop);
+    };
+    const move = (e: MouseEvent) => { px = e.clientX; py = e.clientY; };
+    window.addEventListener("mousemove", move, { passive: true });
+    raf = requestAnimationFrame(loop);
+    return () => { window.removeEventListener("mousemove", move); cancelAnimationFrame(raf); };
+  }, []);
   return (
-    <motion.div
-      aria-hidden
-      style={{ background: bg as unknown as string }}
-      className="pointer-events-none fixed inset-0 z-[55] mix-blend-multiply"
-    />
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[55] mix-blend-multiply overflow-hidden">
+      <div
+        ref={ref}
+        style={{
+          width: 840,
+          height: 840,
+          willChange: "transform",
+          background: "radial-gradient(circle, color-mix(in oklab, var(--orange-accent) 14%, transparent), transparent 70%)",
+        }}
+      />
+    </div>
   );
 }
 
@@ -998,15 +1016,13 @@ function ScrollToTop({ progress }: { progress: MotionValue<number> }) {
    CRAZY EFFECTS — additive, non-breaking
    ============================================================ */
 
-// Animated SVG grain — film noise overlay
+// Static SVG grain — animating feTurbulence forces full-viewport raster every frame.
 function GrainOverlay() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-[55] opacity-[0.06] mix-blend-multiply">
       <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
         <filter id="lov-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch">
-            <animate attributeName="baseFrequency" dur="8s" values="0.9;1.1;0.9" repeatCount="indefinite" />
-          </feTurbulence>
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
           <feColorMatrix type="saturate" values="0" />
         </filter>
         <rect width="100%" height="100%" filter="url(#lov-grain)" />
