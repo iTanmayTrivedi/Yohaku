@@ -5,7 +5,7 @@
 # 折 · FOLIO
 
 ### タンマイ ― ポートフォリオ 第四版
-##### *Tanmay — Portfolio, Fourth Edition*
+##### *Tanmay Trivedi — Portfolio, Fourth Edition*
 
 <br/>
 
@@ -297,7 +297,7 @@ The answer is in the metrics above. And in the *ma* between them.
 <table>
 <tr>
   <td><b>Email</b></td>
-  <td><a href="mailto:hello@tanmay.folio">hello@tanmay.folio</a></td>
+  <td><a href="mailto:tanmay.trivedi.jp@gmail.com">tanmay.trivedi.jp@gmail.com</a></td>
 </tr>
 <tr>
   <td><b>Read</b></td>
@@ -321,7 +321,7 @@ The answer is in the metrics above. And in the *ma* between them.
 
 <br/>
 
-<sub>Designed &amp; engineered by <b>Tanmay</b> · MMXXVI</sub>
+<sub>Designed &amp; engineered by <b>Tanmay Trivedi</b> · MMXXVI</sub>
 
 <sub><code>folio v.4 · quiet edition</code></sub>
 
