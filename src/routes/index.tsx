@@ -1713,11 +1713,11 @@ function Index() {
               <Magnetic>
                 <a
                   data-cursor="mail"
-                  href="mailto:tanmay@example.com"
+                  href="mailto:tanmay.trivedi.jp@gmail.com"
                   onClick={() => setBurst((b) => b + 1)}
                   className="inline-flex items-center gap-3 bg-ink text-paper px-6 py-4 rounded-full text-lg hover:bg-blue-accent transition relative"
                 >
-                  tanmay@example.com →
+                  tanmay.trivedi.jp@gmail.com →
                 </a>
               </Magnetic>
             </div>
