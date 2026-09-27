@@ -15,6 +15,16 @@ import {
 } from "motion/react";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Tanmay Trivedi — Designer & Developer" },
+      { name: "description", content: "Tanmay Trivedi's interactive portfolio of design, development, and creative projects." },
+      { property: "og:title", content: "Tanmay Trivedi — Designer & Developer" },
+      { property: "og:description", content: "Explore Tanmay Trivedi's design, development, and creative projects." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: Index,
 });
 
