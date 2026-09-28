@@ -45,7 +45,7 @@
 
 <br/>
 
-**[ ○ Live ](#)** &nbsp;·&nbsp; **[ ○ Foreword ](#序--foreword)** &nbsp;·&nbsp; **[ ○ Metrics ](#二--measured-performance)** &nbsp;·&nbsp; **[ ○ Work ](#三--selected-work)** &nbsp;·&nbsp; **[ ○ Craft ](#四--craft-details)** &nbsp;·&nbsp; **[ ○ Colophon ](#十--colophon)**
+****[ ○ Yohaku ](https://yohaku.tanmaytrivedi.dev)** &nbsp;·&nbsp;**[ ○ Foreword ](#序--foreword)** &nbsp;·&nbsp; **[ ○ Metrics ](#二--measured-performance)** &nbsp;·&nbsp; **[ ○ Work ](#三--selected-work)** &nbsp;·&nbsp; **[ ○ Craft ](#四--craft-details)** &nbsp;·&nbsp; **[ ○ Colophon ](#十--colophon)**
 
 <br/>
 
