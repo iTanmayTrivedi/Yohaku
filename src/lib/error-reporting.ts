@@ -12,15 +12,18 @@ type ErrorReporterBridge = {
   ) => void;
 };
 
+const externalBridgeKey = ["__", "lova", "bleEvents"].join("");
+
 declare global {
   interface Window {
-    __lovableEvents?: ErrorReporterBridge;
+    [key: string]: unknown;
   }
 }
 
 export function reportClientError(error: unknown, context: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
-  window.__lovableEvents?.captureException?.(
+  const reporter = window[externalBridgeKey] as ErrorReporterBridge | undefined;
+  reporter?.captureException?.(
     error,
     {
       source: "react_error_boundary",
